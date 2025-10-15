@@ -7,7 +7,16 @@ import { Room, User, Vote } from '@/lib/types';
 // Store rooms in memory (in production, use Redis or database)
 const rooms = new Map<string, Room>();
 
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
+// Extend NextApiResponse to include socket server
+interface NextApiResponseServerIO extends NextApiResponse {
+  socket: {
+    server: NetServer & {
+      io?: SocketIOServer;
+    };
+  };
+}
+
+export default function handler(req: NextApiRequest, res: NextApiResponseServerIO) {
   if (!res.socket?.server) {
     res.status(500).json({ error: 'Socket server not available' });
     return;
@@ -20,7 +29,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
   }
 
   console.log('Socket is initializing');
-  const io = new SocketIOServer(res.socket.server as NetServer, {
+  const io = new SocketIOServer(res.socket.server, {
     path: '/api/socket',
     cors: {
       origin: process.env.NODE_ENV === 'production' ? false : '*',
