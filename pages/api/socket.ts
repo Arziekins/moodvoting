@@ -8,6 +8,11 @@ import { Room, User, Vote } from '@/lib/types';
 const rooms = new Map<string, Room>();
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (!res.socket?.server) {
+    res.status(500).json({ error: 'Socket server not available' });
+    return;
+  }
+
   if (res.socket.server.io) {
     console.log('Socket is already running');
     res.end();
