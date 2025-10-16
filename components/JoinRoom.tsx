@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { LogIn, Users } from 'lucide-react';
 import { getSocket } from '@/lib/socket';
 
@@ -13,16 +13,79 @@ export default function JoinRoom({ onJoinRoom, onCreateRoom }: JoinRoomProps) {
   const [roomId, setRoomId] = useState('');
   const [userName, setUserName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<string>('Disconnected');
+  const [debugLogs, setDebugLogs] = useState<string[]>([]);
+  const [showDebug, setShowDebug] = useState(false);
+
+  const addDebugLog = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString();
+    setDebugLogs(prev => [...prev, `[${timestamp}] ${message}`]);
+  };
+
+  // Test initial connection
+  useEffect(() => {
+    addDebugLog("Component mounted, testing socket connection...");
+    const socket = getSocket();
+    
+    if (socket.connected) {
+      addDebugLog("Socket already connected");
+      setConnectionStatus("Connected");
+    } else {
+      addDebugLog("Socket not connected, waiting...");
+      setConnectionStatus("Disconnected");
+      
+      socket.on('connect', () => {
+        addDebugLog("Socket connected successfully!");
+        setConnectionStatus("Connected");
+      });
+
+      socket.on('connect_error', (error) => {
+        addDebugLog(`Socket connection error: ${error.message}`);
+        setConnectionStatus("Connection failed");
+      });
+
+      socket.on('disconnect', () => {
+        addDebugLog("Socket disconnected");
+        setConnectionStatus("Disconnected");
+      });
+    }
+  }, []);
 
   const handleJoinRoom = (e: React.FormEvent) => {
     e.preventDefault();
     if (roomId.trim() && userName.trim()) {
-      const socket = getSocket();
+      addDebugLog("Starting room join process...");
+      setConnectionStatus("Connecting to server...");
       setIsCreating(true);
 
-      socket.emit("room:join", { roomId: roomId.trim(), user: userName.trim() });
+      const socket = getSocket();
+      addDebugLog(`Socket connection state: ${socket.connected ? 'Connected' : 'Disconnected'}`);
+      
+      if (!socket.connected) {
+        addDebugLog("Socket not connected, waiting for connection...");
+        setConnectionStatus("Waiting for socket connection...");
+        
+        socket.on('connect', () => {
+          addDebugLog("Socket connected! Attempting to join room...");
+          setConnectionStatus("Connected - Joining room...");
+          socket.emit("room:join", { roomId: roomId.trim(), user: userName.trim() });
+        });
+
+        socket.on('connect_error', (error) => {
+          addDebugLog(`Socket connection error: ${error.message}`);
+          setConnectionStatus("Connection failed");
+          setIsCreating(false);
+          alert(`Connection failed: ${error.message}`);
+        });
+      } else {
+        addDebugLog("Socket already connected, joining room...");
+        setConnectionStatus("Connected - Joining room...");
+        socket.emit("room:join", { roomId: roomId.trim(), user: userName.trim() });
+      }
 
       const onJoined = ({ roomId }: { roomId: string }) => {
+        addDebugLog(`Successfully joined room: ${roomId}`);
+        setConnectionStatus("Successfully joined room!");
         socket.off("room:joined", onJoined);
         socket.off("error", onErr);
         setIsCreating(false);
@@ -30,6 +93,8 @@ export default function JoinRoom({ onJoinRoom, onCreateRoom }: JoinRoomProps) {
       };
 
       const onErr = (e: any) => {
+        addDebugLog(`Room join error: ${e?.message || 'Unknown error'}`);
+        setConnectionStatus("Join failed");
         socket.off("room:joined", onJoined);
         socket.off("error", onErr);
         setIsCreating(false);
@@ -41,6 +106,8 @@ export default function JoinRoom({ onJoinRoom, onCreateRoom }: JoinRoomProps) {
 
       setTimeout(() => {
         if (isCreating) {
+          addDebugLog("Room join timed out after 15 seconds");
+          setConnectionStatus("Timed out");
           setIsCreating(false);
           alert("Room join timed out. Please try again.");
         }
@@ -51,14 +118,40 @@ export default function JoinRoom({ onJoinRoom, onCreateRoom }: JoinRoomProps) {
   const handleCreateRoom = (e: React.FormEvent) => {
     e.preventDefault();
     if (userName.trim()) {
-      const socket = getSocket();
+      addDebugLog("Starting room creation process...");
+      setConnectionStatus("Connecting to server...");
       setIsCreating(true);
 
-      const desiredId = roomId?.trim();
+      const socket = getSocket();
+      addDebugLog(`Socket connection state: ${socket.connected ? 'Connected' : 'Disconnected'}`);
+      
+      if (!socket.connected) {
+        addDebugLog("Socket not connected, waiting for connection...");
+        setConnectionStatus("Waiting for socket connection...");
+        
+        socket.on('connect', () => {
+          addDebugLog("Socket connected! Attempting to create room...");
+          setConnectionStatus("Connected - Creating room...");
+          const desiredId = roomId?.trim();
+          socket.emit("room:create", { roomId: desiredId, admin: userName.trim() });
+        });
 
-      socket.emit("room:create", { roomId: desiredId, admin: userName.trim() });
+        socket.on('connect_error', (error) => {
+          addDebugLog(`Socket connection error: ${error.message}`);
+          setConnectionStatus("Connection failed");
+          setIsCreating(false);
+          alert(`Connection failed: ${error.message}`);
+        });
+      } else {
+        addDebugLog("Socket already connected, creating room...");
+        setConnectionStatus("Connected - Creating room...");
+        const desiredId = roomId?.trim();
+        socket.emit("room:create", { roomId: desiredId, admin: userName.trim() });
+      }
 
       const onCreated = ({ roomId }: { roomId: string }) => {
+        addDebugLog(`Successfully created room: ${roomId}`);
+        setConnectionStatus("Successfully created room!");
         socket.off("room:created", onCreated);
         socket.off("error", onErr);
         setIsCreating(false);
@@ -66,6 +159,8 @@ export default function JoinRoom({ onJoinRoom, onCreateRoom }: JoinRoomProps) {
       };
 
       const onErr = (e: any) => {
+        addDebugLog(`Room creation error: ${e?.message || 'Unknown error'}`);
+        setConnectionStatus("Creation failed");
         socket.off("room:created", onCreated);
         socket.off("error", onErr);
         setIsCreating(false);
@@ -77,6 +172,8 @@ export default function JoinRoom({ onJoinRoom, onCreateRoom }: JoinRoomProps) {
 
       setTimeout(() => {
         if (isCreating) {
+          addDebugLog("Room creation timed out after 15 seconds");
+          setConnectionStatus("Timed out");
           setIsCreating(false);
           alert("Room creation timed out. Please try again.");
         }
@@ -157,6 +254,51 @@ export default function JoinRoom({ onJoinRoom, onCreateRoom }: JoinRoomProps) {
               <span>{isCreating ? 'Creating...' : 'Create New Room'}</span>
             </button>
           </form>
+
+          {/* Connection Status */}
+          {isCreating && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center space-x-2 mb-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                <span className="text-sm font-medium text-blue-800">Status: {connectionStatus}</span>
+              </div>
+              <div className="text-xs text-blue-600">
+                {connectionStatus === "Waiting for socket connection..." && "Trying to connect to server..."}
+                {connectionStatus === "Connected - Creating room..." && "Creating your room..."}
+                {connectionStatus === "Connected - Joining room..." && "Joining the room..."}
+                {connectionStatus === "Successfully created room!" && "Room created successfully!"}
+                {connectionStatus === "Successfully joined room!" && "Room joined successfully!"}
+                {connectionStatus === "Connection failed" && "Could not connect to server. Check your internet connection."}
+                {connectionStatus === "Creation failed" && "Room creation failed. Please try again."}
+                {connectionStatus === "Join failed" && "Could not join room. Check the room code."}
+                {connectionStatus === "Timed out" && "Operation timed out. Please try again."}
+              </div>
+            </div>
+          )}
+
+          {/* Debug Panel */}
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={() => setShowDebug(!showDebug)}
+              className="text-xs text-gray-500 hover:text-gray-700 underline"
+            >
+              {showDebug ? 'Hide' : 'Show'} Debug Info
+            </button>
+            
+            {showDebug && (
+              <div className="mt-2 bg-gray-900 text-green-400 p-3 rounded-lg text-xs font-mono max-h-40 overflow-y-auto">
+                <div className="mb-2 text-yellow-400">Debug Logs:</div>
+                {debugLogs.length === 0 ? (
+                  <div className="text-gray-500">No debug logs yet...</div>
+                ) : (
+                  debugLogs.map((log, index) => (
+                    <div key={index} className="mb-1">{log}</div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Instructions */}
           <div className="bg-gray-50 rounded-lg p-4">
