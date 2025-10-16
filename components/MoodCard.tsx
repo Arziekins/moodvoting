@@ -27,7 +27,34 @@ export default function MoodCard({
 }: MoodCardProps) {
   const [isFlipped, setIsFlipped] = useState(false);
   const [selectedEmoji, setSelectedEmoji] = useState('');
+  const [emojiInput, setEmojiInput] = useState('');
+  const [emojiError, setEmojiError] = useState('');
   const [selectedScale, setSelectedScale] = useState(0);
+
+  const isSingleEmoji = (value: string) => {
+    const text = value.trim();
+    if (!text) return false;
+    if (/[A-Za-z0-9]/.test(text)) return false;
+    // Must contain at least one extended pictographic code point (emoji)
+    const emojiMatches = text.match(/\p{Extended_Pictographic}/gu) || [];
+    return emojiMatches.length === 1;
+  };
+
+  const onEmojiChange = (value: string) => {
+    setEmojiInput(value);
+    if (!value.trim()) {
+      setEmojiError('');
+      setSelectedEmoji('');
+      return;
+    }
+    if (isSingleEmoji(value)) {
+      setSelectedEmoji(value.trim());
+      setEmojiError('');
+    } else {
+      setSelectedEmoji('');
+      setEmojiError('Please enter a single emoji only');
+    }
+  };
 
   const handleVote = () => {
     if (selectedEmoji && selectedScale > 0 && onVote) {
@@ -83,30 +110,36 @@ export default function MoodCard({
             <p className="text-sm text-gray-600">Select an emoji and rate your mood from 1-10</p>
           </div>
           
-          {/* Emoji Selection */}
+          {/* Emoji Input (mobile-friendly) */}
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-3">Choose an emoji that represents your mood:</label>
-            <div className="grid grid-cols-5 gap-3">
-              {emojis.map((emoji, index) => (
-                <button
-                  key={index}
-                  onClick={() => setSelectedEmoji(emoji)}
-                  className={`p-3 text-3xl rounded-xl border-2 transition-all duration-200 hover:scale-110 ${
-                    selectedEmoji === emoji 
-                      ? 'border-blue-500 bg-blue-100 shadow-md' 
-                      : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
-                  }`}
-                >
-                  {emoji}
-                </button>
-              ))}
+            <label className="block text-sm font-medium text-gray-700 mb-3">Enter any emoji that represents your mood:</label>
+            <input
+              type="text"
+              inputMode="text"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
+              placeholder="e.g. 😊, 😤, 🤔, 🧠"
+              value={emojiInput}
+              onChange={(e) => onEmojiChange(e.target.value)}
+              className={`w-full px-4 py-3 rounded-xl border-2 text-2xl text-center bg-white ${
+                selectedEmoji
+                  ? 'border-blue-500'
+                  : emojiInput
+                    ? 'border-red-300'
+                    : 'border-gray-200'
+              }`}
+              maxLength={8}
+            />
+            <div className="mt-2 text-center min-h-[20px]">
+              {emojiError ? (
+                <span className="text-xs text-red-600">{emojiError}</span>
+              ) : selectedEmoji ? (
+                <span className="text-sm text-gray-700">Selected: <span className="text-2xl align-middle">{selectedEmoji}</span></span>
+              ) : (
+                <span className="text-xs text-gray-500">Tip: Use your mobile emoji keyboard</span>
+              )}
             </div>
-            {selectedEmoji && (
-              <div className="mt-2 text-center">
-                <span className="text-sm text-gray-600">Selected: </span>
-                <span className="text-2xl">{selectedEmoji}</span>
-              </div>
-            )}
           </div>
           
           {/* Scale Selection */}
