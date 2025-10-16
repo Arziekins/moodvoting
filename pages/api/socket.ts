@@ -41,7 +41,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponseWithIO)
 
       // Create room
       socket.on("room:create", ({ roomId, admin }) => {
-        const id = roomId || crypto.randomUUID();
+        const id = roomId || generateRoomId();
         if (!rooms.has(id)) {
           rooms.set(id, { users: new Set(), votes: new Map(), closed: false });
         }
@@ -112,4 +112,13 @@ export default function handler(req: NextApiRequest, res: NextApiResponseWithIO)
 
   // Always respond 200 so Next knows the route is healthy
   res.status(200).json({ ok: true });
+}
+
+function generateRoomId(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let result = '';
+  for (let i = 0; i < 8; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
 }

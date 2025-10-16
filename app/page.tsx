@@ -20,14 +20,52 @@ export default function Home() {
     setSocket(socketInstance);
 
     // Socket event listeners
-    socketInstance.on('room-created', (newRoom: Room) => {
+    socketInstance.on('room:created', (data: { roomId: string }) => {
+      console.log('Room created:', data);
+      // Create a basic room object for the UI
+      const newRoom: Room = {
+        id: data.roomId,
+        name: `Room ${data.roomId}`,
+        adminId: socketInstance.id || 'unknown',
+        users: [],
+        isVotingOpen: false,
+        showResults: false,
+        createdAt: new Date(),
+      };
+      // Create a basic user object for the admin
+      const adminUser: User = {
+        id: socketInstance.id || 'unknown',
+        name: 'Admin', // We'll need to get this from the creation process
+        isAdmin: true,
+        hasVoted: false,
+      };
       setRoom(newRoom);
+      setCurrentUser(adminUser);
       setAppState('lobby');
     });
 
-    socketInstance.on('room-joined', (data: { room: Room; user: User }) => {
-      setRoom(data.room);
-      setCurrentUser(data.user);
+    socketInstance.on('room:joined', (data: { roomId: string }) => {
+      console.log('Room joined:', data);
+      // We need to get the room data from the server
+      // For now, create a basic room object
+      const joinedRoom: Room = {
+        id: data.roomId,
+        name: `Room ${data.roomId}`,
+        adminId: '',
+        users: [],
+        isVotingOpen: false,
+        showResults: false,
+        createdAt: new Date(),
+      };
+      // Create a basic user object for the member
+      const memberUser: User = {
+        id: socketInstance.id || 'unknown',
+        name: 'Member', // We'll need to get this from the join process
+        isAdmin: false,
+        hasVoted: false,
+      };
+      setRoom(joinedRoom);
+      setCurrentUser(memberUser);
       setAppState('lobby');
     });
 
@@ -57,13 +95,13 @@ export default function Home() {
 
   const handleJoinRoom = (roomId: string, userName: string) => {
     if (socket) {
-      socket.emit('join-room', { roomId, userName });
+      socket.emit('room:join', { roomId, user: userName });
     }
   };
 
   const handleCreateRoom = (userName: string) => {
     if (socket) {
-      socket.emit('create-room', { userName });
+      socket.emit('room:create', { admin: userName });
     }
   };
 
@@ -75,28 +113,29 @@ export default function Home() {
 
   const handleCloseVoting = () => {
     if (socket && room) {
-      socket.emit('close-voting', { roomId: room.id });
+      socket.emit('close', { roomId: room.id });
     }
   };
 
   const handleRevealResults = () => {
     if (socket && room) {
-      socket.emit('reveal-results', { roomId: room.id });
+      socket.emit('reveal', { roomId: room.id });
     }
   };
 
   const handleResetVoting = () => {
     if (socket && room) {
-      socket.emit('reset-voting', { roomId: room.id });
+      socket.emit('reset', { roomId: room.id });
     }
   };
 
   const handleVote = (vote: Vote) => {
     if (socket && currentUser) {
-      socket.emit('submit-vote', { 
+      socket.emit('vote', { 
         roomId: room?.id, 
-        userId: currentUser.id, 
-        vote 
+        user: currentUser.name, 
+        emoji: vote.emoji,
+        score: vote.scale
       });
     }
   };
