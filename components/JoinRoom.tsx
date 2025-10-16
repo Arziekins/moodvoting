@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { LogIn, Users } from 'lucide-react';
-import { getSocket } from '@/lib/socket';
+import { getSocket, resetSocket } from '@/lib/socket';
 
 interface JoinRoomProps {
   onJoinRoom: (roomId: string, userName: string) => void;
@@ -20,6 +20,14 @@ export default function JoinRoom({ onJoinRoom, onCreateRoom }: JoinRoomProps) {
   const addDebugLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString();
     setDebugLogs(prev => [...prev, `[${timestamp}] ${message}`]);
+  };
+
+  const handleResetConnection = () => {
+    addDebugLog("Resetting socket connection...");
+    setConnectionStatus("Resetting connection...");
+    resetSocket();
+    addDebugLog("Socket connection reset, testing new connection...");
+    setConnectionStatus("Disconnected");
   };
 
   // Test initial connection
@@ -278,13 +286,22 @@ export default function JoinRoom({ onJoinRoom, onCreateRoom }: JoinRoomProps) {
 
           {/* Debug Panel */}
           <div className="mt-4">
-            <button
-              type="button"
-              onClick={() => setShowDebug(!showDebug)}
-              className="text-xs text-gray-500 hover:text-gray-700 underline"
-            >
-              {showDebug ? 'Hide' : 'Show'} Debug Info
-            </button>
+            <div className="flex space-x-2 mb-2">
+              <button
+                type="button"
+                onClick={() => setShowDebug(!showDebug)}
+                className="text-xs text-gray-500 hover:text-gray-700 underline"
+              >
+                {showDebug ? 'Hide' : 'Show'} Debug Info
+              </button>
+              <button
+                type="button"
+                onClick={handleResetConnection}
+                className="text-xs text-red-500 hover:text-red-700 underline"
+              >
+                Reset Connection
+              </button>
+            </div>
             
             {showDebug && (
               <div className="mt-2 bg-gray-900 text-green-400 p-3 rounded-lg text-xs font-mono max-h-40 overflow-y-auto">
