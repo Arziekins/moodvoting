@@ -14,7 +14,7 @@ const handle = app.getRequestHandler();
 const rooms = new Map();
 
 const roomState = {
-  users: new Set(),
+  users: new Map(), // Changed from Set to Map to store user objects
   votes: new Map(),
   closed: false
 };
@@ -57,15 +57,21 @@ app.prepare().then(() => {
       const id = roomId || generateRoomId();
       if (!rooms.has(id)) {
         rooms.set(id, {
-          users: new Set(),
+          users: new Map(),
           votes: new Map(),
           closed: false
         });
       }
       const room = rooms.get(id);
-      room.users.add(admin);
+      const adminUser = {
+        id: socket.id,
+        name: admin,
+        isAdmin: true,
+        hasVoted: false
+      };
+      room.users.set(socket.id, adminUser);
       socket.join(id);
-      io.to(id).emit("presence", { users: Array.from(room.users) });
+      io.to(id).emit("presence", { users: Array.from(room.users.values()) });
       socket.emit("room:created", { roomId: id });
     });
 
@@ -76,9 +82,15 @@ app.prepare().then(() => {
         socket.emit("error", { message: "Room not found" });
         return;
       }
-      room.users.add(user);
+      const newUser = {
+        id: socket.id,
+        name: user,
+        isAdmin: false,
+        hasVoted: false
+      };
+      room.users.set(socket.id, newUser);
       socket.join(roomId);
-      io.to(roomId).emit("presence", { users: Array.from(room.users) });
+      io.to(roomId).emit("presence", { users: Array.from(room.users.values()) });
       socket.emit("room:joined", { roomId });
     });
 
@@ -86,8 +98,16 @@ app.prepare().then(() => {
     socket.on("vote", ({ roomId, user, emoji, score }) => {
       const room = rooms.get(roomId);
       if (!room || room.closed) return;
-      room.votes.set(user, { emoji, score });
+      room.votes.set(socket.id, { emoji, score });
+      // Update user's hasVoted status
+      const userObj = room.users.get(socket.id);
+      if (userObj) {
+        userObj.hasVoted = true;
+        userObj.vote = { emoji, scale: score };
+      }
       socket.emit("vote:ack", { ok: true });
+      // Broadcast updated user list
+      io.to(roomId).emit("presence", { users: Array.from(room.users.values()) });
     });
 
     socket.on("close", ({ roomId }) => {
@@ -105,11 +125,18 @@ app.prepare().then(() => {
     });
 
     socket.on("reset", ({ roomId }) => {
-      rooms.set(roomId, {
-        users: new Set(),
-        votes: new Map(),
-        closed: false
-      });
+      const room = rooms.get(roomId);
+      if (!room) return;
+      // Reset votes and voting status but keep users
+      room.votes.clear();
+      room.closed = false;
+      room.isVotingOpen = false;
+      // Reset all users' voting status
+      for (const user of room.users.values()) {
+        user.hasVoted = false;
+        user.vote = undefined;
+      }
+      io.to(roomId).emit("presence", { users: Array.from(room.users.values()) });
       io.to(roomId).emit("reset");
     });
 
@@ -124,10 +151,10 @@ app.prepare().then(() => {
     socket.on("room:leave", ({ roomId, user }) => {
       const room = rooms.get(roomId);
       if (!room) return;
-      room.users.delete(user);
-      room.votes.delete(user);
+      room.users.delete(socket.id);
+      room.votes.delete(socket.id);
       socket.leave(roomId);
-      io.to(roomId).emit("presence", { users: Array.from(room.users) });
+      io.to(roomId).emit("presence", { users: Array.from(room.users.values()) });
     });
 
     socket.on("disconnect", (reason) => {
@@ -136,6 +163,15 @@ app.prepare().then(() => {
         reason: reason,
         transport: socket.conn.transport.name
       });
+      
+      // Clean up user from all rooms
+      for (const [roomId, room] of rooms.entries()) {
+        if (room.users.has(socket.id)) {
+          room.users.delete(socket.id);
+          room.votes.delete(socket.id);
+          io.to(roomId).emit("presence", { users: Array.from(room.users.values()) });
+        }
+      }
     });
 
     socket.on("error", (error) => {

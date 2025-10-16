@@ -36,6 +36,17 @@ export default function Home() {
       setAppState('lobby');
     });
 
+    // Handle presence updates (member list changes)
+    socketInstance.on('presence', (data: { users: User[] }) => {
+      console.log('Presence update:', data);
+      if (room) {
+        setRoom(prevRoom => ({
+          ...prevRoom!,
+          users: data.users
+        }));
+      }
+    });
+
     socketInstance.on('room:joined', (data: { roomId: string }) => {
       console.log('Room joined:', data);
       // Create a basic room object for the UI
@@ -147,6 +158,7 @@ export default function Home() {
         roomId={room.id}
         userName={currentUser.name}
         isAdmin={currentUser.isAdmin}
+        users={room.users}
         onStartVoting={handleStartVoting}
       />
     );

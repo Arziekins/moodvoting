@@ -2,15 +2,17 @@
 
 import { useState } from 'react';
 import { Copy, Users, Crown } from 'lucide-react';
+import { User } from '@/lib/types';
 
 interface RoomLobbyProps {
   roomId: string;
   userName: string;
   isAdmin: boolean;
+  users: User[];
   onStartVoting: () => void;
 }
 
-export default function RoomLobby({ roomId, userName, isAdmin, onStartVoting }: RoomLobbyProps) {
+export default function RoomLobby({ roomId, userName, isAdmin, users, onStartVoting }: RoomLobbyProps) {
   const [copied, setCopied] = useState(false);
 
   const copyRoomId = () => {
@@ -64,6 +66,39 @@ export default function RoomLobby({ roomId, userName, isAdmin, onStartVoting }: 
                   Admin
                 </span>
               )}
+            </div>
+          </div>
+
+          {/* Member List */}
+          <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <div className="flex items-center space-x-2 mb-3">
+              <Users className="w-5 h-5 text-gray-600" />
+              <span className="font-medium text-gray-700">Room Members ({users.length})</span>
+            </div>
+            <div className="space-y-2">
+              {users.map((user) => (
+                <div key={user.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                      {user.name.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="text-sm font-medium text-gray-800">{user.name}</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {user.isAdmin && (
+                      <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium flex items-center space-x-1">
+                        <Crown className="w-3 h-3" />
+                        <span>Admin</span>
+                      </span>
+                    )}
+                    {user.hasVoted && (
+                      <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
+                        Voted
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 

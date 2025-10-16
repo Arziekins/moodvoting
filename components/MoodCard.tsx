@@ -77,55 +77,70 @@ export default function MoodCard({
       
       {/* Voting Interface for Current User */}
       {isCurrentUser && !hasVoted && !showResults && (
-        <div className="mt-4 p-4 bg-white rounded-lg shadow-lg max-w-xs">
-          <h3 className="text-lg font-semibold mb-3 text-gray-800">How&apos;s your mood today?</h3>
+        <div className="mt-4 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-lg max-w-sm border-2 border-blue-200">
+          <div className="text-center mb-4">
+            <h3 className="text-xl font-bold text-gray-800 mb-2">How's your mood today?</h3>
+            <p className="text-sm text-gray-600">Select an emoji and rate your mood from 1-10</p>
+          </div>
           
           {/* Emoji Selection */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Choose an emoji:</label>
-            <div className="grid grid-cols-5 gap-2">
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-3">Choose an emoji that represents your mood:</label>
+            <div className="grid grid-cols-5 gap-3">
               {emojis.map((emoji, index) => (
                 <button
                   key={index}
                   onClick={() => setSelectedEmoji(emoji)}
-                  className={`p-2 text-2xl rounded-lg border-2 transition-colors ${
+                  className={`p-3 text-3xl rounded-xl border-2 transition-all duration-200 hover:scale-110 ${
                     selectedEmoji === emoji 
-                      ? 'border-blue-500 bg-blue-50' 
-                      : 'border-gray-200 hover:border-gray-300'
+                      ? 'border-blue-500 bg-blue-100 shadow-md' 
+                      : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
                   }`}
                 >
                   {emoji}
                 </button>
               ))}
             </div>
+            {selectedEmoji && (
+              <div className="mt-2 text-center">
+                <span className="text-sm text-gray-600">Selected: </span>
+                <span className="text-2xl">{selectedEmoji}</span>
+              </div>
+            )}
           </div>
           
           {/* Scale Selection */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Rate your mood (1-10):</label>
-            <div className="flex space-x-1">
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-3">Rate your mood intensity (1-10):</label>
+            <div className="flex justify-center space-x-2">
               {scales.map((scale) => (
                 <button
                   key={scale}
                   onClick={() => setSelectedScale(scale)}
-                  className={`w-8 h-8 rounded-full text-sm font-medium transition-colors ${
+                  className={`w-10 h-10 rounded-full text-sm font-bold transition-all duration-200 hover:scale-110 ${
                     selectedScale === scale
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      ? 'bg-blue-500 text-white shadow-lg'
+                      : 'bg-gray-200 text-gray-700 hover:bg-blue-200 hover:text-blue-800'
                   }`}
                 >
                   {scale}
                 </button>
               ))}
             </div>
+            {selectedScale > 0 && (
+              <div className="mt-3 text-center">
+                <div className="text-sm text-gray-600 mb-1">Selected rating:</div>
+                <div className="text-2xl font-bold text-blue-600">{selectedScale}/10</div>
+              </div>
+            )}
           </div>
           
           <button
             onClick={handleVote}
             disabled={!selectedEmoji || selectedScale === 0}
-            className="w-full bg-blue-500 text-white py-2 px-4 rounded-lg font-medium disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-blue-600 transition-colors"
+            className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-3 px-6 rounded-xl font-bold text-lg disabled:bg-gray-300 disabled:cursor-not-allowed hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl disabled:shadow-none"
           >
-            Submit Vote
+            {selectedEmoji && selectedScale > 0 ? `Submit ${selectedEmoji} ${selectedScale}/10` : 'Submit Vote'}
           </button>
         </div>
       )}
