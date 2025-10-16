@@ -1,200 +1,115 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import { Server as NetServer } from 'http';
-import { Server as SocketIOServer } from 'socket.io';
-import { v4 as uuidv4 } from 'uuid';
-import { Room, User, Vote } from '@/lib/types';
+// pages/api/socket.ts
+import type { NextApiRequest, NextApiResponse } from "next";
+import { Server as IOServer } from "socket.io";
+import type { Server as HTTPServer } from "http";
 
-// Store rooms in memory (in production, use Redis or database)
-const rooms = new Map<string, Room>();
+type NextApiResponseWithIO = NextApiResponse & {
+  socketServer?: IOServer;
+};
 
-// Extend NextApiResponse to include socket server
-interface NextApiResponseServerIO extends NextApiResponse {
-  socketServer: {
-    server: NetServer & {
-      io?: SocketIOServer;
-    };
-  };
-}
+type RoomState = {
+  users: Set<string>;
+  votes: Map<string, { emoji: string; score: number }>;
+  closed: boolean;
+};
 
-export default function handler(req: NextApiRequest, res: NextApiResponseServerIO) {
-  if (!res.socketServer?.server) {
-    res.status(500).json({ error: 'Socket server not available' });
-    return;
-  }
+// Persist state in the single Node process
+const rooms: Map<string, RoomState> = (global as any).moodRooms || new Map();
+(global as any).moodRooms = rooms;
 
-  if (res.socketServer.server.io) {
-    console.log('Socket is already running');
-    res.end();
-    return;
-  }
+export default function handler(req: NextApiRequest, res: NextApiResponseWithIO) {
+  // Attach once
+  if (!res.socketServer) {
+    // On Next.js API routes, the underlying Node server is at res.socket.server
+    const httpServer = (res as any)?.socket?.server as HTTPServer | undefined;
+    if (!httpServer) {
+      res.status(503).json({ error: "Socket server not ready" });
+      return;
+    }
 
-  console.log('Socket is initializing');
-  const io = new SocketIOServer(res.socketServer.server, {
-    path: '/api/socket',
-    cors: {
-      origin: process.env.NODE_ENV === 'production' ? false : '*',
-      methods: ['GET', 'POST'],
-    },
-  });
-
-  res.socketServer.server.io = io;
-
-  io.on('connection', (socket) => {
-    console.log('New client connected:', socket.id);
-
-    // Create room
-    socket.on('create-room', ({ userName }) => {
-      const roomId = generateRoomId();
-      const user: User = {
-        id: socket.id,
-        name: userName,
-        isAdmin: true,
-        hasVoted: false,
-      };
-
-      const room: Room = {
-        id: roomId,
-        name: `Room ${roomId}`,
-        adminId: socket.id,
-        users: [user],
-        isVotingOpen: false,
-        showResults: false,
-        createdAt: new Date(),
-      };
-
-      rooms.set(roomId, room);
-      socket.join(roomId);
-      socket.emit('room-created', room);
+    const io = new IOServer(httpServer, {
+      path: "/api/socket",
+      cors: {
+        origin: process.env.CORS_ORIGIN || "*",
+        methods: ["GET", "POST"],
+      },
+      transports: ["websocket", "polling"],
     });
 
-    // Join room
-    socket.on('join-room', ({ roomId, userName }) => {
-      const room = rooms.get(roomId);
-      if (!room) {
-        socket.emit('error', { message: 'Room not found' });
-        return;
-      }
+    io.on("connection", (socket) => {
+      console.log("New client connected:", socket.id);
 
-      const user: User = {
-        id: socket.id,
-        name: userName,
-        isAdmin: false,
-        hasVoted: false,
-      };
-
-      room.users.push(user);
-      socket.join(roomId);
-      socket.emit('room-joined', { room, user });
-      io.to(roomId).emit('room-updated', room);
-    });
-
-    // Start voting
-    socket.on('start-voting', ({ roomId }) => {
-      const room = rooms.get(roomId);
-      if (!room || room.adminId !== socket.id) {
-        socket.emit('error', { message: 'Unauthorized' });
-        return;
-      }
-
-      room.isVotingOpen = true;
-      room.showResults = false;
-      io.to(roomId).emit('voting-started');
-      io.to(roomId).emit('room-updated', room);
-    });
-
-    // Submit vote
-    socket.on('submit-vote', ({ roomId, userId, vote }) => {
-      const room = rooms.get(roomId);
-      if (!room) return;
-
-      const user = room.users.find(u => u.id === userId);
-      if (user) {
-        user.hasVoted = true;
-        user.vote = vote;
-        io.to(roomId).emit('room-updated', room);
-      }
-    });
-
-    // Close voting
-    socket.on('close-voting', ({ roomId }) => {
-      const room = rooms.get(roomId);
-      if (!room || room.adminId !== socket.id) {
-        socket.emit('error', { message: 'Unauthorized' });
-        return;
-      }
-
-      room.isVotingOpen = false;
-      io.to(roomId).emit('voting-closed');
-      io.to(roomId).emit('room-updated', room);
-    });
-
-    // Reveal results
-    socket.on('reveal-results', ({ roomId }) => {
-      const room = rooms.get(roomId);
-      if (!room || room.adminId !== socket.id) {
-        socket.emit('error', { message: 'Unauthorized' });
-        return;
-      }
-
-      room.showResults = true;
-      io.to(roomId).emit('results-revealed');
-      io.to(roomId).emit('room-updated', room);
-    });
-
-    // Reset voting
-    socket.on('reset-voting', ({ roomId }) => {
-      const room = rooms.get(roomId);
-      if (!room || room.adminId !== socket.id) {
-        socket.emit('error', { message: 'Unauthorized' });
-        return;
-      }
-
-      room.isVotingOpen = true;
-      room.showResults = false;
-      room.users.forEach(user => {
-        user.hasVoted = false;
-        user.vote = undefined;
-      });
-
-      io.to(roomId).emit('voting-started');
-      io.to(roomId).emit('room-updated', room);
-    });
-
-    // Handle disconnect
-    socket.on('disconnect', () => {
-      console.log('Client disconnected:', socket.id);
-      
-      // Remove user from all rooms
-      rooms.forEach((room, roomId) => {
-        const userIndex = room.users.findIndex(u => u.id === socket.id);
-        if (userIndex !== -1) {
-          room.users.splice(userIndex, 1);
-          
-          // If admin left, assign new admin or close room
-          if (room.adminId === socket.id) {
-            if (room.users.length > 0) {
-              room.adminId = room.users[0].id;
-              room.users[0].isAdmin = true;
-            } else {
-              rooms.delete(roomId);
-              return;
-            }
-          }
-          
-          io.to(roomId).emit('room-updated', room);
+      // Create room
+      socket.on("room:create", ({ roomId, admin }) => {
+        const id = roomId || crypto.randomUUID();
+        if (!rooms.has(id)) {
+          rooms.set(id, { users: new Set(), votes: new Map(), closed: false });
         }
+        const room = rooms.get(id)!;
+        room.users.add(admin);
+        socket.join(id);
+        io.to(id).emit("presence", { users: Array.from(room.users) });
+        socket.emit("room:created", { roomId: id });
+      });
+
+      // Join room
+      socket.on("room:join", ({ roomId, user }) => {
+        const room = rooms.get(roomId);
+        if (!room) {
+          socket.emit("error", { message: "Room not found" });
+          return;
+        }
+        room.users.add(user);
+        socket.join(roomId);
+        io.to(roomId).emit("presence", { users: Array.from(room.users) });
+        socket.emit("room:joined", { roomId });
+      });
+
+      // Vote
+      socket.on("vote", ({ roomId, user, emoji, score }) => {
+        const room = rooms.get(roomId);
+        if (!room || room.closed) return;
+        room.votes.set(user, { emoji, score });
+        socket.emit("vote:ack", { ok: true });
+      });
+
+      socket.on("close", ({ roomId }) => {
+        const room = rooms.get(roomId);
+        if (!room) return;
+        room.closed = true;
+        io.to(roomId).emit("closed");
+      });
+
+      socket.on("reveal", ({ roomId }) => {
+        const room = rooms.get(roomId);
+        if (!room) return;
+        const results = Array.from(room.votes.entries()).map(([user, v]) => ({ user, ...v }));
+        io.to(roomId).emit("reveal", { results });
+      });
+
+      socket.on("reset", ({ roomId }) => {
+        rooms.set(roomId, { users: new Set(), votes: new Map(), closed: false });
+        io.to(roomId).emit("reset");
+      });
+
+      socket.on("room:leave", ({ roomId, user }) => {
+        const room = rooms.get(roomId);
+        if (!room) return;
+        room.users.delete(user);
+        room.votes.delete(user);
+        socket.leave(roomId);
+        io.to(roomId).emit("presence", { users: Array.from(room.users) });
+      });
+
+      socket.on("disconnect", () => {
+        console.log("Client disconnected:", socket.id);
       });
     });
-  });
 
-  res.end();
-}
-
-function generateRoomId(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let result = '';
-  for (let i = 0; i < 6; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
+    // Mark initialized
+    res.socketServer = io;
   }
-  return result;
+
+  // Always respond 200 so Next knows the route is healthy
+  res.status(200).json({ ok: true });
 }

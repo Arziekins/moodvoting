@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { LogIn, Users } from 'lucide-react';
+import { getSocket } from '@/lib/socket';
 
 interface JoinRoomProps {
   onJoinRoom: (roomId: string, userName: string) => void;
@@ -16,15 +17,70 @@ export default function JoinRoom({ onJoinRoom, onCreateRoom }: JoinRoomProps) {
   const handleJoinRoom = (e: React.FormEvent) => {
     e.preventDefault();
     if (roomId.trim() && userName.trim()) {
-      onJoinRoom(roomId.trim(), userName.trim());
+      const socket = getSocket();
+      setIsCreating(true);
+
+      socket.emit("room:join", { roomId: roomId.trim(), user: userName.trim() });
+
+      const onJoined = ({ roomId }: { roomId: string }) => {
+        socket.off("room:joined", onJoined);
+        socket.off("error", onErr);
+        setIsCreating(false);
+        onJoinRoom(roomId, userName.trim());
+      };
+
+      const onErr = (e: any) => {
+        socket.off("room:joined", onJoined);
+        socket.off("error", onErr);
+        setIsCreating(false);
+        alert(e?.message || "Failed to join room");
+      };
+
+      socket.on("room:joined", onJoined);
+      socket.on("error", onErr);
+
+      setTimeout(() => {
+        if (isCreating) {
+          setIsCreating(false);
+          alert("Room join timed out. Please try again.");
+        }
+      }, 15000);
     }
   };
 
   const handleCreateRoom = (e: React.FormEvent) => {
     e.preventDefault();
     if (userName.trim()) {
+      const socket = getSocket();
       setIsCreating(true);
-      onCreateRoom(userName.trim());
+
+      const desiredId = roomId?.trim();
+
+      socket.emit("room:create", { roomId: desiredId, admin: userName.trim() });
+
+      const onCreated = ({ roomId }: { roomId: string }) => {
+        socket.off("room:created", onCreated);
+        socket.off("error", onErr);
+        setIsCreating(false);
+        onCreateRoom(userName.trim());
+      };
+
+      const onErr = (e: any) => {
+        socket.off("room:created", onCreated);
+        socket.off("error", onErr);
+        setIsCreating(false);
+        alert(e?.message || "Failed to create room");
+      };
+
+      socket.on("room:created", onCreated);
+      socket.on("error", onErr);
+
+      setTimeout(() => {
+        if (isCreating) {
+          setIsCreating(false);
+          alert("Room creation timed out. Please try again.");
+        }
+      }, 15000);
     }
   };
 
