@@ -32,22 +32,13 @@ export default function Home() {
         showResults: false,
         createdAt: new Date(),
       };
-      // Create a basic user object for the admin
-      const adminUser: User = {
-        id: socketInstance.id || 'unknown',
-        name: 'Admin', // We'll need to get this from the creation process
-        isAdmin: true,
-        hasVoted: false,
-      };
       setRoom(newRoom);
-      setCurrentUser(adminUser);
       setAppState('lobby');
     });
 
     socketInstance.on('room:joined', (data: { roomId: string }) => {
       console.log('Room joined:', data);
-      // We need to get the room data from the server
-      // For now, create a basic room object
+      // Create a basic room object for the UI
       const joinedRoom: Room = {
         id: data.roomId,
         name: `Room ${data.roomId}`,
@@ -57,15 +48,7 @@ export default function Home() {
         showResults: false,
         createdAt: new Date(),
       };
-      // Create a basic user object for the member
-      const memberUser: User = {
-        id: socketInstance.id || 'unknown',
-        name: 'Member', // We'll need to get this from the join process
-        isAdmin: false,
-        hasVoted: false,
-      };
       setRoom(joinedRoom);
-      setCurrentUser(memberUser);
       setAppState('lobby');
     });
 
@@ -95,12 +78,26 @@ export default function Home() {
 
   const handleJoinRoom = (roomId: string, userName: string) => {
     if (socket) {
+      // Store the user name for later use
+      setCurrentUser({
+        id: socket.id || 'unknown',
+        name: userName,
+        isAdmin: false,
+        hasVoted: false,
+      });
       socket.emit('room:join', { roomId, user: userName });
     }
   };
 
   const handleCreateRoom = (userName: string) => {
     if (socket) {
+      // Store the admin name for later use
+      setCurrentUser({
+        id: socket.id || 'unknown',
+        name: userName,
+        isAdmin: true,
+        hasVoted: false,
+      });
       socket.emit('room:create', { admin: userName });
     }
   };

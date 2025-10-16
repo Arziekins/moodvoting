@@ -113,6 +113,14 @@ app.prepare().then(() => {
       io.to(roomId).emit("reset");
     });
 
+    // Start voting
+    socket.on("start-voting", ({ roomId }) => {
+      const room = rooms.get(roomId);
+      if (!room) return;
+      room.isVotingOpen = true;
+      io.to(roomId).emit("voting-started");
+    });
+
     socket.on("room:leave", ({ roomId, user }) => {
       const room = rooms.get(roomId);
       if (!room) return;
