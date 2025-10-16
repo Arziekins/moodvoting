@@ -74,15 +74,37 @@ export default function Home() {
     });
 
     socketInstance.on('voting-started', () => {
+      // Move to voting and mark room as voting open
       setAppState('voting');
+      setRoom(prev => prev ? { ...prev, isVotingOpen: true, showResults: false } : prev);
     });
 
-    socketInstance.on('voting-closed', () => {
-      // Voting closed, but still in voting state until results are revealed
+    socketInstance.on('closed', () => {
+      // Voting closed; keep in voting view, hide results until reveal
+      setRoom(prev => prev ? { ...prev, isVotingOpen: false } : prev);
     });
 
-    socketInstance.on('results-revealed', () => {
-      // Results revealed, stay in voting state
+    socketInstance.on('reveal', (data: { results: { user: string; emoji: string; score: number }[] }) => {
+      // Merge revealed results into users by id and show results
+      setRoom(prev => {
+        if (!prev) return prev;
+        const idToVote = new Map<string, { emoji: string; score: number }>();
+        for (const r of data.results) idToVote.set(r.user, { emoji: r.emoji, score: r.score });
+        const users = prev.users.map(u => {
+          const v = idToVote.get(u.id);
+          return v ? { ...u, vote: { emoji: v.emoji, scale: v.score }, hasVoted: true } : u;
+        });
+        return { ...prev, users, showResults: true, isVotingOpen: false };
+      });
+    });
+
+    socketInstance.on('reset', () => {
+      // New round; clear votes and reopen lobby/voting state as closed
+      setRoom(prev => {
+        if (!prev) return prev;
+        const users = prev.users.map(u => ({ ...u, hasVoted: false, vote: undefined }));
+        return { ...prev, users, isVotingOpen: false, showResults: false };
+      });
     });
 
     return () => {
