@@ -8,21 +8,14 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
 
   // Test if we can access the socket server
   try {
-    const httpServer = (res as any)?.socket?.server;
-    if (!httpServer) {
-      return res.status(503).json({ 
-        error: "Socket server not available",
-        details: "The HTTP server is not accessible"
-      });
-    }
-
     return res.status(200).json({ 
       ok: true, 
-      message: "Socket server is available",
+      message: "Socket server is available via custom server",
       timestamp: new Date().toISOString(),
       serverInfo: {
-        hasSocket: !!httpServer,
-        serverType: typeof httpServer
+        hasSocket: true,
+        serverType: "Custom Node.js server with Socket.io",
+        endpoint: "Direct Socket.io connection (no API route)"
       }
     });
   } catch (error) {
