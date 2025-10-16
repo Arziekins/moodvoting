@@ -40,9 +40,9 @@ export function getSocket(): Socket {
     socket.on('connect_error', (error) => {
       console.error(`[${new Date().toISOString()}] Socket connection error:`, {
         message: error.message,
-        description: error.description,
-        context: error.context,
-        type: error.type,
+        description: (error as any).description,
+        context: (error as any).context,
+        type: (error as any).type,
         transport: socket?.io?.engine?.transport?.name
       });
     });
