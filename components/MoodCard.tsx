@@ -34,10 +34,15 @@ export default function MoodCard({
   const isSingleEmoji = (value: string) => {
     const text = value.trim();
     if (!text) return false;
-    if (/[A-Za-z0-9]/.test(text)) return false;
-    // Must contain at least one extended pictographic code point (emoji)
-    const emojiMatches = text.match(/\p{Extended_Pictographic}/gu) || [];
-    return emojiMatches.length === 1;
+    // Use code point splitting to count graphemes (approx) for mobile input
+    const codePoints = Array.from(text);
+    if (codePoints.length !== 1) return false;
+    // Basic emoji detection without Unicode property escapes or 'u' flag
+    // 1) Misc symbols & dingbats range
+    if (/[\u2600-\u27BF]/.test(text)) return true;
+    // 2) Surrogate pair ranges commonly used by emoji
+    if (/[\uD83C-\uDBFF][\uDC00-\uDFFF]/.test(text)) return true;
+    return false;
   };
 
   const onEmojiChange = (value: string) => {
