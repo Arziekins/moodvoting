@@ -39,12 +39,15 @@ export default function Home() {
     // Handle presence updates (member list changes)
     socketInstance.on('presence', (data: { users: User[] }) => {
       console.log('Presence update:', data);
-      if (room) {
-        setRoom(prevRoom => ({
-          ...prevRoom!,
-          users: data.users
-        }));
-      }
+      setRoom(prevRoom => {
+        if (prevRoom) {
+          return {
+            ...prevRoom,
+            users: data.users
+          };
+        }
+        return prevRoom;
+      });
     });
 
     socketInstance.on('room:joined', (data: { roomId: string }) => {

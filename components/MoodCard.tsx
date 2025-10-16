@@ -79,7 +79,7 @@ export default function MoodCard({
       {isCurrentUser && !hasVoted && !showResults && (
         <div className="mt-4 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-lg max-w-sm border-2 border-blue-200">
           <div className="text-center mb-4">
-            <h3 className="text-xl font-bold text-gray-800 mb-2">How's your mood today?</h3>
+            <h3 className="text-xl font-bold text-gray-800 mb-2">How&apos;s your mood today?</h3>
             <p className="text-sm text-gray-600">Select an emoji and rate your mood from 1-10</p>
           </div>
           
