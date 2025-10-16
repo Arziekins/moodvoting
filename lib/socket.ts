@@ -11,6 +11,11 @@ let socket: Socket | null = null;
 export function getSocket(): Socket {
   if (!socket) {
     console.log("Creating new socket connection to:", baseUrl);
+    console.log("Environment variables:", {
+      NEXT_PUBLIC_SOCKET_URL: process.env.NEXT_PUBLIC_SOCKET_URL,
+      windowOrigin: typeof window !== "undefined" ? window.location.origin : "N/A"
+    });
+    
     socket = io(baseUrl, {
       path: "/api/socket",
       transports: ["websocket", "polling"],
@@ -49,4 +54,16 @@ export const resetSocket = () => {
   }
   // Force creation of new socket
   return getSocket();
+};
+
+export const testSocketEndpoint = async () => {
+  try {
+    const response = await fetch(`${baseUrl}/api/socket`);
+    const data = await response.json();
+    console.log("Socket endpoint test:", { status: response.status, data });
+    return { success: true, data };
+  } catch (error) {
+    console.error("Socket endpoint test failed:", error);
+    return { success: false, error };
+  }
 };

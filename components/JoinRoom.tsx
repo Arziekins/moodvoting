@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { LogIn, Users } from 'lucide-react';
-import { getSocket, resetSocket } from '@/lib/socket';
+import { getSocket, resetSocket, testSocketEndpoint } from '@/lib/socket';
 
 interface JoinRoomProps {
   onJoinRoom: (roomId: string, userName: string) => void;
@@ -28,6 +28,19 @@ export default function JoinRoom({ onJoinRoom, onCreateRoom }: JoinRoomProps) {
     resetSocket();
     addDebugLog("Socket connection reset, testing new connection...");
     setConnectionStatus("Disconnected");
+  };
+
+  const handleTestEndpoint = async () => {
+    addDebugLog("Testing socket endpoint...");
+    setConnectionStatus("Testing endpoint...");
+    const result = await testSocketEndpoint();
+    if (result.success) {
+      addDebugLog(`Socket endpoint test successful: ${JSON.stringify(result.data)}`);
+      setConnectionStatus("Endpoint accessible");
+    } else {
+      addDebugLog(`Socket endpoint test failed: ${result.error}`);
+      setConnectionStatus("Endpoint not accessible");
+    }
   };
 
   // Test initial connection
@@ -300,6 +313,13 @@ export default function JoinRoom({ onJoinRoom, onCreateRoom }: JoinRoomProps) {
                 className="text-xs text-red-500 hover:text-red-700 underline"
               >
                 Reset Connection
+              </button>
+              <button
+                type="button"
+                onClick={handleTestEndpoint}
+                className="text-xs text-blue-500 hover:text-blue-700 underline"
+              >
+                Test Endpoint
               </button>
             </div>
             
