@@ -9,7 +9,7 @@ const rooms = new Map<string, Room>();
 
 // Extend NextApiResponse to include socket server
 interface NextApiResponseServerIO extends NextApiResponse {
-  socket: {
+  socketServer: {
     server: NetServer & {
       io?: SocketIOServer;
     };
@@ -17,19 +17,19 @@ interface NextApiResponseServerIO extends NextApiResponse {
 }
 
 export default function handler(req: NextApiRequest, res: NextApiResponseServerIO) {
-  if (!res.socket?.server) {
+  if (!res.socketServer?.server) {
     res.status(500).json({ error: 'Socket server not available' });
     return;
   }
 
-  if (res.socket.server.io) {
+  if (res.socketServer.server.io) {
     console.log('Socket is already running');
     res.end();
     return;
   }
 
   console.log('Socket is initializing');
-  const io = new SocketIOServer(res.socket.server, {
+  const io = new SocketIOServer(res.socketServer.server, {
     path: '/api/socket',
     cors: {
       origin: process.env.NODE_ENV === 'production' ? false : '*',
@@ -37,7 +37,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponseServerI
     },
   });
 
-  res.socket.server.io = io;
+  res.socketServer.server.io = io;
 
   io.on('connection', (socket) => {
     console.log('New client connected:', socket.id);

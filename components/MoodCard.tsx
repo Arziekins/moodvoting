@@ -78,7 +78,7 @@ export default function MoodCard({
       {/* Voting Interface for Current User */}
       {isCurrentUser && !hasVoted && !showResults && (
         <div className="mt-4 p-4 bg-white rounded-lg shadow-lg max-w-xs">
-          <h3 className="text-lg font-semibold mb-3 text-gray-800">How's your mood today?</h3>
+          <h3 className="text-lg font-semibold mb-3 text-gray-800">How&apos;s your mood today?</h3>
           
           {/* Emoji Selection */}
           <div className="mb-4">
