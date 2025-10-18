@@ -153,8 +153,7 @@ export default function JoinRoom({ onJoinRoom, onCreateRoom }: JoinRoomProps) {
         socket.on('connect', () => {
           addDebugLog("Socket connected! Attempting to create room...");
           setConnectionStatus("Connected - Creating room...");
-          const desiredId = roomId?.trim();
-          socket.emit("room:create", { roomId: desiredId, admin: userName.trim() });
+          socket.emit("room:create", { admin: userName.trim() });
         });
 
         socket.on('connect_error', (error) => {
@@ -166,8 +165,7 @@ export default function JoinRoom({ onJoinRoom, onCreateRoom }: JoinRoomProps) {
       } else {
         addDebugLog("Socket already connected, creating room...");
         setConnectionStatus("Connected - Creating room...");
-        const desiredId = roomId?.trim();
-        socket.emit("room:create", { roomId: desiredId, admin: userName.trim() });
+        socket.emit("room:create", { admin: userName.trim() });
       }
 
       const onCreated = ({ roomId }: { roomId: string }) => {

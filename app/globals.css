@@ -4,13 +4,13 @@
 
 @layer base {
   body {
-    @apply bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 min-h-screen;
+    @apply bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 min-h-screen md:min-h-screen min-h-[100dvh];
   }
 }
 
 @layer components {
   .card {
-    @apply relative w-24 h-32 bg-white rounded-lg shadow-lg cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl;
+    @apply relative w-20 h-28 sm:w-24 sm:h-32 md:w-28 md:h-36 bg-white rounded-lg shadow-lg cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl;
   }
   
   .card-cover {

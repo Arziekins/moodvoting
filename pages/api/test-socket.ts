@@ -2,6 +2,12 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
+  const start = Date.now();
+  console.log(`[${new Date().toISOString()}] /api/test-socket hit`, {
+    method: req.method,
+    host: req.headers.host,
+    userAgent: req.headers['user-agent']
+  });
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -24,4 +30,8 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
+  console.log(`[${new Date().toISOString()}] /api/test-socket responded`, {
+    statusCode: res.statusCode,
+    durationMs: Date.now() - start
+  });
 }

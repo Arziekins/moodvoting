@@ -1,14 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Users, Eye, EyeOff, RotateCcw } from 'lucide-react';
+import { Users, Eye, RotateCcw, Flag } from 'lucide-react';
 import MoodCard from './MoodCard';
 import { Room, User, Vote } from '@/lib/types';
 
 interface VotingRoomProps {
   room: Room;
   currentUser: User;
-  onCloseVoting: () => void;
+  onFinishSession: () => void;
   onRevealResults: () => void;
   onResetVoting: () => void;
   onVote: (vote: Vote) => void;
@@ -17,7 +17,7 @@ interface VotingRoomProps {
 export default function VotingRoom({ 
   room, 
   currentUser, 
-  onCloseVoting, 
+  onFinishSession, 
   onRevealResults, 
   onResetVoting, 
   onVote 
@@ -59,16 +59,13 @@ export default function VotingRoom({
           {/* Admin Controls */}
           {isAdmin && (
             <div className="flex flex-wrap gap-3">
-              {room.isVotingOpen && (
-                <button
-                  onClick={onCloseVoting}
-                  disabled={!allUsersVoted}
-                  className="bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center space-x-2"
-                >
-                  <EyeOff className="w-4 h-4" />
-                  <span>Close Voting</span>
-                </button>
-              )}
+              <button
+                onClick={onFinishSession}
+                className="bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition-colors flex items-center space-x-2"
+              >
+                <Flag className="w-4 h-4" />
+                <span>Finish Session</span>
+              </button>
               
               {!room.isVotingOpen && !showResults && (
                 <button
@@ -100,12 +97,12 @@ export default function VotingRoom({
                   ? `Voting in progress (${room.users.filter(u => u.hasVoted).length}/${room.users.length} voted)`
                   : showResults 
                     ? 'Results revealed'
-                    : 'Voting closed - waiting for results'
+                    : 'Waiting for results'
                 }
               </span>
               {room.isVotingOpen && allUsersVoted && (
                 <span className="text-sm text-green-600 font-medium">
-                  All votes received! Ready to close.
+                  All votes received! You can reveal or finish.
                 </span>
               )}
             </div>
@@ -115,7 +112,7 @@ export default function VotingRoom({
 
       {/* Voting Cards Grid */}
       <div className="max-w-6xl mx-auto">
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
           {room.users.map((user) => (
             <MoodCard
               key={user.id}
@@ -135,39 +132,20 @@ export default function VotingRoom({
       {showResults && (
         <div className="max-w-6xl mx-auto mt-8">
           <div className="bg-white rounded-2xl shadow-xl p-6">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">Mood Summary</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Average Score */}
-              <div className="bg-blue-50 rounded-lg p-4">
-                <h3 className="font-medium text-blue-800 mb-2">Average Mood Score</h3>
-                <div className="text-3xl font-bold text-blue-600">
-                  {room.users.length > 0 
-                    ? (room.users.reduce((sum, user) => sum + (user.vote?.scale || 0), 0) / room.users.length).toFixed(1)
-                    : '0'
-                  }/10
+            <h2 className="text-xl font-bold text-gray-800 mb-4">Emote Recap</h2>
+            <div className="max-h-96 overflow-auto divide-y">
+              {room.users.map(u => (
+                <div key={u.id} className="py-2 flex items-center justify-between">
+                  <div className="text-gray-800 font-medium">{u.name}</div>
+                  <div className="text-lg">
+                    {u.vote ? (
+                      <span className="font-bold">{u.vote.emoji} {u.vote.scale}/10</span>
+                    ) : (
+                      <span className="text-gray-400">No vote</span>
+                    )}
+                  </div>
                 </div>
-              </div>
-              
-              {/* Most Common Emoji */}
-              <div className="bg-green-50 rounded-lg p-4">
-                <h3 className="font-medium text-green-800 mb-2">Most Common Mood</h3>
-                <div className="text-3xl">
-                  {(() => {
-                    const emojiCounts = room.users.reduce((acc, user) => {
-                      if (user.vote?.emoji) {
-                        acc[user.vote.emoji] = (acc[user.vote.emoji] || 0) + 1;
-                      }
-                      return acc;
-                    }, {} as Record<string, number>);
-                    
-                    const mostCommon = Object.entries(emojiCounts).reduce((a, b) => 
-                      emojiCounts[a[0]] > emojiCounts[b[0]] ? a : b, ['', 0]
-                    );
-                    
-                    return mostCommon[0] || '😐';
-                  })()}
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </div>

@@ -22,6 +22,23 @@ const roomState = {
 app.prepare().then(() => {
   const httpServer = createServer(async (req, res) => {
     try {
+      const startTime = Date.now();
+      const isApi = req.url && req.url.startsWith('/api');
+      console.log(`[${new Date().toISOString()}] Incoming request`, {
+        method: req.method,
+        url: req.url,
+        isApi,
+        host: req.headers['host'],
+        userAgent: req.headers['user-agent']
+      });
+      res.on('finish', () => {
+        console.log(`[${new Date().toISOString()}] Response finished`, {
+          method: req.method,
+          url: req.url,
+          statusCode: res.statusCode,
+          durationMs: Date.now() - startTime
+        });
+      });
       const parsedUrl = parse(req.url, true);
       await handle(req, res, parsedUrl);
     } catch (err) {
@@ -43,6 +60,9 @@ app.prepare().then(() => {
     pingInterval: 25000
   });
 
+  const { sendRecapToSlack } = require('./lib/slack.js');
+  const { prisma } = require('./lib/prisma.cjs');
+
   io.on('connection', (socket) => {
     console.log(`[${new Date().toISOString()}] New client connected:`, {
       socketId: socket.id,
@@ -53,51 +73,99 @@ app.prepare().then(() => {
     });
 
     // Create room
-    socket.on("room:create", ({ roomId, admin }) => {
-      const id = roomId || generateRoomId();
-      if (!rooms.has(id)) {
-        rooms.set(id, {
-          users: new Map(),
-          votes: new Map(),
-          closed: false
-        });
+    socket.on("room:create", ({ admin, userId }) => {
+      // Always generate a 4-digit code on the server; ignore any client-provided id
+      let id = generateRoomId();
+      while (rooms.has(id)) {
+        id = generateRoomId();
       }
+      rooms.set(id, {
+        users: new Map(),
+        votes: new Map(),
+        closed: false
+      });
       const room = rooms.get(id);
       const adminUser = {
         id: socket.id,
+        userId: userId || socket.id,
         name: admin,
         isAdmin: true,
         hasVoted: false
       };
       room.users.set(socket.id, adminUser);
       socket.join(id);
+      console.log(`[${new Date().toISOString()}] room:create -> presence about to emit`, {
+        roomId: id,
+        userCount: room.users.size,
+        users: Array.from(room.users.values()).map(u => ({ id: u.id, name: u.name }))
+      });
+      // Send presence directly to the creator as well to avoid race conditions
+      socket.emit("presence", { users: Array.from(room.users.values()) });
       io.to(id).emit("presence", { users: Array.from(room.users.values()) });
+      console.log(`[${new Date().toISOString()}] room:create -> presence emitted`, {
+        roomId: id,
+        userCount: room.users.size
+      });
       socket.emit("room:created", { roomId: id });
     });
 
     // Join room
-    socket.on("room:join", ({ roomId, user }) => {
+    socket.on("room:join", ({ roomId, user, userId }) => {
       const room = rooms.get(roomId);
       if (!room) {
         socket.emit("error", { message: "Room not found" });
         return;
       }
-      const newUser = {
-        id: socket.id,
-        name: user,
-        isAdmin: false,
-        hasVoted: false
-      };
-      room.users.set(socket.id, newUser);
+      // Try to find existing user by userId
+      let rejoined = false;
+      if (userId) {
+        for (const [sid, u] of room.users.entries()) {
+          if (u.userId && u.userId === userId) {
+            // Update socket id and mark online
+            room.users.delete(sid);
+            room.votes.delete(sid);
+            room.users.set(socket.id, { ...u, id: socket.id, name: user, hasVoted: !!u.hasVoted, offline: false, offlineAt: undefined });
+            rejoined = true;
+            break;
+          }
+        }
+      }
+      if (!rejoined) {
+        const newUser = {
+          id: socket.id,
+          userId: userId || socket.id,
+          name: user,
+          isAdmin: false,
+          hasVoted: false
+        };
+        room.users.set(socket.id, newUser);
+      }
       socket.join(roomId);
+      const allSocketIdsBefore = Array.from((io.sockets.adapter.rooms.get(roomId) || new Set()));
+      console.log(`[${new Date().toISOString()}] room:join -> presence about to emit`, {
+        roomId,
+        userName: user,
+        roomUserCount: room.users.size,
+        allSocketIds: allSocketIdsBefore,
+        users: Array.from(room.users.values()).map(u => ({ id: u.id, name: u.name }))
+      });
+      // Send presence directly to the joiner as well to ensure they see all users
+      socket.emit("presence", { users: Array.from(room.users.values()) });
       io.to(roomId).emit("presence", { users: Array.from(room.users.values()) });
+      const allSocketIdsAfter = Array.from((io.sockets.adapter.rooms.get(roomId) || new Set()));
+      console.log(`[${new Date().toISOString()}] room:join -> presence emitted`, {
+        roomId,
+        userName: user,
+        roomUserCount: room.users.size,
+        allSocketIds: allSocketIdsAfter
+      });
       socket.emit("room:joined", { roomId });
     });
 
     // Vote
-    socket.on("vote", ({ roomId, user, emoji, score }) => {
+    socket.on("vote", ({ roomId, user, userId, emoji, score }) => {
       const room = rooms.get(roomId);
-      if (!room || room.closed) return;
+      if (!room) return;
       room.votes.set(socket.id, { emoji, score });
       // Update user's hasVoted status
       const userObj = room.users.get(socket.id);
@@ -105,9 +173,45 @@ app.prepare().then(() => {
         userObj.hasVoted = true;
         userObj.vote = { emoji, scale: score };
       }
+      console.log(`[${new Date().toISOString()}] vote received`, {
+        roomId,
+        socketId: socket.id,
+        user,
+        userId: userId || userObj?.userId,
+        score,
+        isVotingOpen: !!room.isVotingOpen,
+        totalVotes: room.votes.size,
+        totalUsers: room.users.size
+      });
       socket.emit("vote:ack", { ok: true });
       // Broadcast updated user list
+      console.log(`[${new Date().toISOString()}] vote -> presence about to emit`, {
+        roomId,
+        userCount: room.users.size
+      });
       io.to(roomId).emit("presence", { users: Array.from(room.users.values()) });
+      console.log(`[${new Date().toISOString()}] vote -> presence emitted`, {
+        roomId,
+        userCount: room.users.size
+      });
+
+      // Auto-reveal results if all users have voted
+      const allVoted = Array.from(room.users.values()).every(u => u.hasVoted);
+      if (allVoted && room.users.size > 0) {
+        const results = Array.from(room.votes.entries()).map(([user, v]) => ({ user, ...v }));
+        console.log(`[${new Date().toISOString()}] auto-reveal triggered`, {
+          roomId,
+          votes: results.length
+        });
+        io.to(roomId).emit("reveal", { results });
+        // Fire-and-forget Slack recap
+        try {
+          const usersForSlack = Array.from(room.users.values()).map(u => ({ name: u.name, vote: u.vote }));
+          sendRecapToSlack(roomId, usersForSlack).catch(() => {});
+        } catch (e) {
+          console.warn('[slack] recap send failed', e);
+        }
+      }
     });
 
     socket.on("close", ({ roomId }) => {
@@ -122,6 +226,13 @@ app.prepare().then(() => {
       if (!room) return;
       const results = Array.from(room.votes.entries()).map(([user, v]) => ({ user, ...v }));
       io.to(roomId).emit("reveal", { results });
+      // Also send Slack recap on manual reveal
+      try {
+        const usersForSlack = Array.from(room.users.values()).map(u => ({ name: u.name, vote: u.vote }));
+        sendRecapToSlack(roomId, usersForSlack).catch(() => {});
+      } catch (e) {
+        console.warn('[slack] recap send failed', e);
+      }
     });
 
     socket.on("reset", ({ roomId }) => {
@@ -136,7 +247,15 @@ app.prepare().then(() => {
         user.hasVoted = false;
         user.vote = undefined;
       }
+      console.log(`[${new Date().toISOString()}] reset -> presence about to emit`, {
+        roomId,
+        userCount: room.users.size
+      });
       io.to(roomId).emit("presence", { users: Array.from(room.users.values()) });
+      console.log(`[${new Date().toISOString()}] reset -> presence emitted`, {
+        roomId,
+        userCount: room.users.size
+      });
       io.to(roomId).emit("reset");
     });
 
@@ -148,13 +267,66 @@ app.prepare().then(() => {
       io.to(roomId).emit("voting-started");
     });
 
+    // Finish session -> persist later and notify clients
+    socket.on("finish-session", ({ roomId }) => {
+      const room = rooms.get(roomId);
+      if (!room) return;
+      io.to(roomId).emit("session-finished", { roomId });
+      // Optionally send recap on finish
+      try {
+        const usersForSlack = Array.from(room.users.values()).map(u => ({ name: u.name, vote: u.vote }));
+        sendRecapToSlack(roomId, usersForSlack).catch(() => {});
+      } catch (e) {
+        console.warn('[slack] recap send failed', e);
+      }
+      // Persist snapshot to DB (best-effort)
+      (async () => {
+        try {
+          await prisma.room.upsert({
+            where: { id: roomId },
+            update: {
+              finishedAt: new Date(),
+            },
+            create: {
+              id: roomId,
+              finishedAt: new Date(),
+            }
+          });
+          const usersArray = Array.from(room.users.values());
+          for (const u of usersArray) {
+            await prisma.roomUser.create({
+              data: { roomId, userId: u.userId || u.id, name: u.name }
+            });
+          }
+          for (const [sid, v] of room.votes.entries()) {
+            const u = room.users.get(sid);
+            await prisma.roomVote.create({
+              data: { roomId, userId: (u && (u.userId || u.id)) || sid, name: (u && u.name) || 'Unknown', emoji: v.emoji, scale: v.score }
+            });
+          }
+          console.log(`[${new Date().toISOString()}] Session persisted`, { roomId });
+        } catch (e) {
+          console.warn('[prisma] persist failed', e);
+        }
+      })();
+    });
+
     socket.on("room:leave", ({ roomId, user }) => {
       const room = rooms.get(roomId);
       if (!room) return;
       room.users.delete(socket.id);
       room.votes.delete(socket.id);
       socket.leave(roomId);
+      console.log(`[${new Date().toISOString()}] room:leave -> presence about to emit`, {
+        roomId,
+        leavingSocketId: socket.id,
+        userCount: room.users.size
+      });
       io.to(roomId).emit("presence", { users: Array.from(room.users.values()) });
+      console.log(`[${new Date().toISOString()}] room:leave -> presence emitted`, {
+        roomId,
+        userCount: room.users.size
+      });
     });
 
     socket.on("disconnect", (reason) => {
@@ -165,12 +337,33 @@ app.prepare().then(() => {
       });
       
       // Clean up user from all rooms
+      const roomsAffected = [];
+      const remainingUserCounts = {};
       for (const [roomId, room] of rooms.entries()) {
         if (room.users.has(socket.id)) {
-          room.users.delete(socket.id);
+          const userObj = room.users.get(socket.id);
+          if (userObj) {
+            userObj.offline = true;
+            userObj.offlineAt = Date.now();
+          }
+          // Keep user in list but mark offline; do not delete to allow rejoin
+          // Remove vote associated with old socket
           room.votes.delete(socket.id);
+          console.log(`[${new Date().toISOString()}] disconnect -> user marked offline, emitting presence`, {
+            roomId,
+            remainingUsers: room.users.size
+          });
+          roomsAffected.push(roomId);
+          remainingUserCounts[roomId] = room.users.size;
           io.to(roomId).emit("presence", { users: Array.from(room.users.values()) });
         }
+      }
+      if (roomsAffected.length > 0) {
+        console.log(`[${new Date().toISOString()}] disconnect summary`, {
+          socketId: socket.id,
+          roomsAffected,
+          remainingUserCounts
+        });
       }
     });
 
@@ -184,12 +377,8 @@ app.prepare().then(() => {
   });
 
   function generateRoomId() {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let result = '';
-    for (let i = 0; i < 8; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
+    // 4-digit numeric room code (1000-9999)
+    return Math.floor(1000 + Math.random() * 9000).toString();
   }
 
   httpServer.listen(port, hostname, (err) => {

@@ -63,6 +63,7 @@ export default function MoodCard({
 
   const handleVote = () => {
     if (selectedEmoji && selectedScale > 0 && onVote) {
+      console.log('[vote] submit', { selectedEmoji, selectedScale, buttonDisabled: !selectedEmoji || selectedScale === 0 });
       onVote({ emoji: selectedEmoji, scale: selectedScale });
     }
   };
@@ -108,8 +109,8 @@ export default function MoodCard({
       </div>
       
       {/* Voting Interface for Current User */}
-      {isCurrentUser && !hasVoted && !showResults && (
-        <div className="mt-4 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-lg max-w-sm border-2 border-blue-200">
+      {isCurrentUser && !hasVoted && onVote && (
+        <div className="mt-4 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-lg max-w-full sm:max-w-sm md:max-w-md border-2 border-blue-200">
           <div className="text-center mb-4">
             <h3 className="text-xl font-bold text-gray-800 mb-2">How&apos;s your mood today?</h3>
             <p className="text-sm text-gray-600">Select an emoji and rate your mood from 1-10</p>
@@ -154,12 +155,13 @@ export default function MoodCard({
               {scales.map((scale) => (
                 <button
                   key={scale}
-                  onClick={() => setSelectedScale(scale)}
-                  className={`w-10 h-10 rounded-full text-sm font-bold transition-all duration-200 hover:scale-110 ${
+                  onClick={() => { console.log('[scale] click', { scale }); setSelectedScale(scale); }}
+                  className={`w-10 h-10 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full text-sm sm:text-sm md:text-base font-bold transition-all duration-200 hover:scale-110 touch-manipulation ${
                     selectedScale === scale
                       ? 'bg-blue-500 text-white shadow-lg'
                       : 'bg-gray-200 text-gray-700 hover:bg-blue-200 hover:text-blue-800'
                   }`}
+                  style={{ pointerEvents: 'auto', touchAction: 'manipulation' }}
                 >
                   {scale}
                 </button>
@@ -176,7 +178,7 @@ export default function MoodCard({
           <button
             onClick={handleVote}
             disabled={!selectedEmoji || selectedScale === 0}
-            className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-3 px-6 rounded-xl font-bold text-lg disabled:bg-gray-300 disabled:cursor-not-allowed hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl disabled:shadow-none"
+            className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-3 px-6 rounded-xl font-bold text-base sm:text-lg disabled:bg-gray-300 disabled:cursor-not-allowed hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl disabled:shadow-none"
           >
             {selectedEmoji && selectedScale > 0 ? `Submit ${selectedEmoji} ${selectedScale}/10` : 'Submit Vote'}
           </button>

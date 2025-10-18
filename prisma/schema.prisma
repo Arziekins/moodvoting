@@ -1,0 +1,37 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = env("DATABASE_PROVIDER")
+  url      = env("DATABASE_URL")
+}
+
+model Room {
+  id         String     @id
+  createdAt  DateTime   @default(now())
+  finishedAt DateTime?
+  users      RoomUser[]
+  votes      RoomVote[]
+}
+
+model RoomUser {
+  id     Int    @id @default(autoincrement())
+  roomId String
+  userId String
+  name   String
+  room   Room   @relation(fields: [roomId], references: [id])
+}
+
+model RoomVote {
+  id     Int    @id @default(autoincrement())
+  roomId String
+  userId String
+  name   String
+  emoji  String
+  scale  Int
+  room   Room   @relation(fields: [roomId], references: [id])
+}
+
+
+

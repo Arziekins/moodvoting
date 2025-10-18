@@ -38,7 +38,10 @@ export default function Home() {
 
     // Handle presence updates (member list changes)
     socketInstance.on('presence', (data: { users: User[] }) => {
-      console.log('Presence update:', data);
+      console.log('[presence] update', {
+        count: data.users.length,
+        names: data.users.map(u => u.name)
+      });
       setRoom(prevRoom => {
         if (prevRoom) {
           return {
@@ -86,6 +89,10 @@ export default function Home() {
 
     socketInstance.on('reveal', (data: { results: { user: string; emoji: string; score: number }[] }) => {
       // Merge revealed results into users by id and show results
+      console.log('[reveal] results', {
+        count: data.results.length,
+        sample: data.results.slice(0, 3)
+      });
       setRoom(prev => {
         if (!prev) return prev;
         const idToVote = new Map<string, { emoji: string; score: number }>();
