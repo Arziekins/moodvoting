@@ -6,7 +6,7 @@
     "dev": "node server.js",
     "prisma:generate": "prisma generate",
     "prisma:db:push": "prisma db push",
-    "build": "npm run prisma:generate && npm run prisma:db:push && next build",
+    "build": "npm run prisma:generate && next build",
     "start": "NODE_ENV=production node server.js",
     "lint": "next lint"
   },
