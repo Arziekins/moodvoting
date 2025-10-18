@@ -151,9 +151,9 @@ export default function Home() {
     }
   };
 
-  const handleCloseVoting = () => {
+  const handleFinishSession = () => {
     if (socket && room) {
-      socket.emit('close', { roomId: room.id });
+      socket.emit('finish-session', { roomId: room.id });
     }
   };
 
@@ -201,7 +201,7 @@ export default function Home() {
       <VotingRoom
         room={room}
         currentUser={currentUser}
-        onCloseVoting={handleCloseVoting}
+        onFinishSession={handleFinishSession}
         onRevealResults={handleRevealResults}
         onResetVoting={handleResetVoting}
         onVote={handleVote}
