@@ -8,14 +8,21 @@ const baseUrl =
     ? (process.env.NEXT_PUBLIC_SOCKET_URL || window.location.origin)
     : process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3000";
 
+// Ensure we use the secure protocol for HTTPS connections
+const socketUrl = typeof window !== "undefined" && window.location.protocol === "https:"
+  ? baseUrl.replace("http://", "https://")
+  : baseUrl;
+
 let socket: Socket | null = null;
 
 export function getSocket(): Socket {
   if (!socket) {
-    console.log(`[${new Date().toISOString()}] Creating new socket connection to:`, baseUrl);
+    console.log(`[${new Date().toISOString()}] Creating new socket connection to:`, socketUrl);
     console.log(`[${new Date().toISOString()}] Environment variables:`, {
       NEXT_PUBLIC_SOCKET_URL: process.env.NEXT_PUBLIC_SOCKET_URL,
       windowOrigin: typeof window !== "undefined" ? window.location.origin : "N/A",
+      windowProtocol: typeof window !== "undefined" ? window.location.protocol : "N/A",
+      finalSocketUrl: socketUrl,
       userAgent: typeof window !== "undefined" ? window.navigator.userAgent : "N/A"
     });
     
@@ -24,15 +31,16 @@ export function getSocket(): Socket {
       withCredentials: true,
       timeout: 20000, // 20 second timeout
       forceNew: true, // Force new connection
+      secure: typeof window !== "undefined" && window.location.protocol === "https:",
     };
     
     console.log(`[${new Date().toISOString()}] Socket.io client config:`, socketConfig);
     
-    socket = io(baseUrl, socketConfig);
+    socket = io(socketUrl, socketConfig);
 
     // Add connection event listeners for debugging
     socket.on('connect', () => {
-      console.log(`[${new Date().toISOString()}] Socket connected successfully to:`, baseUrl);
+      console.log(`[${new Date().toISOString()}] Socket connected successfully to:`, socketUrl);
       console.log(`[${new Date().toISOString()}] Socket ID:`, socket?.id);
       console.log(`[${new Date().toISOString()}] Transport:`, socket?.io?.engine?.transport?.name);
     });
@@ -76,8 +84,8 @@ export const resetSocket = () => {
 
 export const testSocketEndpoint = async () => {
   try {
-    console.log(`[${new Date().toISOString()}] Testing socket server availability: ${baseUrl}`);
-    const response = await fetch(`${baseUrl}/api/test-socket`);
+    console.log(`[${new Date().toISOString()}] Testing socket server availability: ${socketUrl}`);
+    const response = await fetch(`${socketUrl}/api/test-socket`);
     console.log(`[${new Date().toISOString()}] Test endpoint response:`, {
       status: response.status,
       statusText: response.statusText,
