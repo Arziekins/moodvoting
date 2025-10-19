@@ -201,20 +201,20 @@ export default function JoinRoom({ onJoinRoom, onCreateRoom }: JoinRoomProps) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full">
+    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6">
+      <div className="glass rounded-3xl shadow-2xl p-6 sm:p-8 md:p-10 max-w-md w-full border-2 border-purple-200">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full mx-auto mb-4 flex items-center justify-center">
-            <Users className="w-8 h-8 text-white" />
+          <div className="w-20 h-20 bg-gradient-to-br from-purple-600 to-purple-800 rounded-2xl mx-auto mb-6 flex items-center justify-center shadow-lg transform hover:scale-105 transition-transform">
+            <Users className="w-10 h-10 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">Mood Voting Cards</h1>
-          <p className="text-gray-600">Join a room or create your own</p>
+          <h1 className="text-3xl sm:text-4xl font-bold gradient-text mb-3">Mood Voting</h1>
+          <p className="text-purple-600 text-sm sm:text-base">Join a room or create your own</p>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-5 sm:space-y-6">
           {/* User Name Input */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-purple-700 mb-2">
               Your Name
             </label>
             <input
@@ -222,7 +222,7 @@ export default function JoinRoom({ onJoinRoom, onCreateRoom }: JoinRoomProps) {
               value={userName}
               onChange={(e) => setUserName(e.target.value)}
               placeholder="Enter your name"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 sm:py-4 border-2 border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all bg-white text-gray-800 placeholder-purple-300"
               required
             />
           </div>
@@ -230,7 +230,7 @@ export default function JoinRoom({ onJoinRoom, onCreateRoom }: JoinRoomProps) {
           {/* Join Room */}
           <form onSubmit={handleJoinRoom} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-semibold text-purple-700 mb-2">
                 Room Code
               </label>
               <input
@@ -238,27 +238,27 @@ export default function JoinRoom({ onJoinRoom, onCreateRoom }: JoinRoomProps) {
                 value={roomId}
                 onChange={(e) => setRoomId(e.target.value.toUpperCase())}
                 placeholder="Enter room code"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+                className="w-full px-4 py-3 sm:py-4 border-2 border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all bg-white font-mono text-lg text-center text-gray-800 placeholder-purple-300"
                 required
               />
             </div>
             <button
               type="submit"
               disabled={!roomId.trim() || !userName.trim()}
-              className="w-full bg-blue-500 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+              className="w-full bg-gradient-to-r from-purple-600 to-purple-700 text-white py-3 sm:py-4 px-4 rounded-xl font-semibold hover:from-purple-700 hover:to-purple-800 transition-all disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl disabled:shadow-none transform hover:scale-[1.02] active:scale-[0.98]"
             >
-              <LogIn className="w-4 h-4" />
+              <LogIn className="w-5 h-5" />
               <span>Join Room</span>
             </button>
           </form>
 
           {/* Divider */}
-          <div className="relative">
+          <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300" />
+              <div className="w-full border-t-2 border-purple-200" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">or</span>
+              <span className="px-4 bg-white text-purple-600 font-medium">or</span>
             </div>
           </div>
 
@@ -267,21 +267,21 @@ export default function JoinRoom({ onJoinRoom, onCreateRoom }: JoinRoomProps) {
             <button
               type="submit"
               disabled={!userName.trim() || isCreating}
-              className="w-full bg-green-500 text-white py-3 px-4 rounded-lg font-medium hover:bg-green-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+              className="w-full bg-white text-purple-700 py-3 sm:py-4 px-4 rounded-xl font-semibold hover:bg-purple-50 transition-all disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed flex items-center justify-center space-x-2 border-2 border-purple-300 hover:border-purple-500 shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98]"
             >
-              <Users className="w-4 h-4" />
+              <Users className="w-5 h-5" />
               <span>{isCreating ? 'Creating...' : 'Create New Room'}</span>
             </button>
           </form>
 
           {/* Connection Status */}
           {isCreating && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-center space-x-2 mb-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
-                <span className="text-sm font-medium text-blue-800">Status: {connectionStatus}</span>
+            <div className="bg-purple-50 border-2 border-purple-200 rounded-xl p-4">
+              <div className="flex items-center space-x-3 mb-2">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600"></div>
+                <span className="text-sm font-semibold text-purple-800">Status: {connectionStatus}</span>
               </div>
-              <div className="text-xs text-blue-600">
+              <div className="text-xs text-purple-600">
                 {connectionStatus === "Waiting for socket connection..." && "Trying to connect to server..."}
                 {connectionStatus === "Connected - Creating room..." && "Creating your room..."}
                 {connectionStatus === "Connected - Joining room..." && "Joining the room..."}
@@ -297,33 +297,33 @@ export default function JoinRoom({ onJoinRoom, onCreateRoom }: JoinRoomProps) {
 
           {/* Debug Panel */}
           <div className="mt-4">
-            <div className="flex space-x-2 mb-2">
+            <div className="flex flex-wrap gap-2 mb-2">
               <button
                 type="button"
                 onClick={() => setShowDebug(!showDebug)}
-                className="text-xs text-gray-500 hover:text-gray-700 underline"
+                className="text-xs text-purple-600 hover:text-purple-800 underline font-medium"
               >
                 {showDebug ? 'Hide' : 'Show'} Debug Info
               </button>
               <button
                 type="button"
                 onClick={handleResetConnection}
-                className="text-xs text-red-500 hover:text-red-700 underline"
+                className="text-xs text-red-500 hover:text-red-700 underline font-medium"
               >
                 Reset Connection
               </button>
               <button
                 type="button"
                 onClick={handleTestEndpoint}
-                className="text-xs text-blue-500 hover:text-blue-700 underline"
+                className="text-xs text-purple-600 hover:text-purple-800 underline font-medium"
               >
                 Test Endpoint
               </button>
             </div>
             
             {showDebug && (
-              <div className="mt-2 bg-gray-900 text-green-400 p-3 rounded-lg text-xs font-mono max-h-40 overflow-y-auto">
-                <div className="mb-2 text-yellow-400">Debug Logs:</div>
+              <div className="mt-2 bg-gray-900 text-green-400 p-3 rounded-xl text-xs font-mono max-h-40 overflow-y-auto">
+                <div className="mb-2 text-purple-400 font-bold">Debug Logs:</div>
                 {debugLogs.length === 0 ? (
                   <div className="text-gray-500">No debug logs yet...</div>
                 ) : (
@@ -336,13 +336,25 @@ export default function JoinRoom({ onJoinRoom, onCreateRoom }: JoinRoomProps) {
           </div>
 
           {/* Instructions */}
-          <div className="bg-gray-50 rounded-lg p-4">
-            <h3 className="font-medium text-gray-800 mb-2">How it works:</h3>
-            <ul className="text-sm text-gray-600 space-y-1">
-              <li>• Create a room to become the admin</li>
-              <li>• Share the room code with your team</li>
-              <li>• Vote with emoji and 1-10 scale</li>
-              <li>• Cards flip to reveal results together</li>
+          <div className="bg-gradient-to-br from-purple-50 to-white rounded-xl p-4 sm:p-5 border-2 border-purple-100">
+            <h3 className="font-bold text-purple-800 mb-3 text-base">How it works:</h3>
+            <ul className="text-sm text-purple-700 space-y-2">
+              <li className="flex items-start">
+                <span className="text-purple-500 mr-2">✨</span>
+                <span>Create a room to become the admin</span>
+              </li>
+              <li className="flex items-start">
+                <span className="text-purple-500 mr-2">🔗</span>
+                <span>Share the room code with your team</span>
+              </li>
+              <li className="flex items-start">
+                <span className="text-purple-500 mr-2">😊</span>
+                <span>Vote with emoji and 1-10 slider</span>
+              </li>
+              <li className="flex items-start">
+                <span className="text-purple-500 mr-2">🎴</span>
+                <span>Cards auto-flip when everyone votes</span>
+              </li>
             </ul>
           </div>
         </div>

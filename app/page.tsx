@@ -40,8 +40,37 @@ export default function Home() {
       console.log('[presence] update', {
         count: data.users.length,
         names: data.users.map(u => u.name),
+        userIds: data.users.map(u => u.id),
         timestamp: new Date().toISOString()
       });
+      
+      // Update currentUser if they're in the presence list
+      setCurrentUser(prevUser => {
+        if (prevUser) {
+          const updatedUser = data.users.find(u => u.id === socketInstance.id || u.name === prevUser.name);
+          if (updatedUser) {
+            console.log('[presence] Found currentUser in presence, updating', {
+              oldId: prevUser.id,
+              newId: updatedUser.id,
+              name: updatedUser.name,
+              socketId: socketInstance.id
+            });
+            return {
+              ...updatedUser,
+              isAdmin: prevUser.isAdmin // Preserve admin status
+            };
+          } else {
+            console.log('[presence] WARNING: currentUser NOT found in presence list!', {
+              currentUserId: prevUser.id,
+              currentUserName: prevUser.name,
+              socketId: socketInstance.id,
+              presenceUserIds: data.users.map(u => u.id)
+            });
+          }
+        }
+        return prevUser;
+      });
+      
       setRoom(prevRoom => {
         if (prevRoom) {
           console.log('[presence] Updating room users', {
@@ -124,27 +153,41 @@ export default function Home() {
 
   const handleJoinRoom = (roomId: string, userName: string) => {
     if (socket) {
+      console.log('[DEBUG] handleJoinRoom START', {
+        socketId: socket.id,
+        socketConnected: socket.connected,
+        userName
+      });
       // Store the user name for later use
-      setCurrentUser({
+      const newUser = {
         id: socket.id || 'unknown',
         name: userName,
         isAdmin: false,
         hasVoted: false,
-      });
-      socket.emit('room:join', { roomId, user: userName });
+      };
+      console.log('[DEBUG] Setting currentUser', newUser);
+      setCurrentUser(newUser);
+      socket.emit('room:join', { roomId, user: userName, userId: socket.id });
     }
   };
 
   const handleCreateRoom = (userName: string) => {
     if (socket) {
+      console.log('[DEBUG] handleCreateRoom START', {
+        socketId: socket.id,
+        socketConnected: socket.connected,
+        userName
+      });
       // Store the admin name for later use
-      setCurrentUser({
+      const newUser = {
         id: socket.id || 'unknown',
         name: userName,
         isAdmin: true,
         hasVoted: false,
-      });
-      socket.emit('room:create', { admin: userName });
+      };
+      console.log('[DEBUG] Setting currentUser (admin)', newUser);
+      setCurrentUser(newUser);
+      socket.emit('room:create', { admin: userName, userId: socket.id });
     }
   };
 

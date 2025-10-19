@@ -29,6 +29,18 @@ export default function MoodCard({
   const [selectedScale, setSelectedScale] = useState(5); // Default to middle value
   const [hasInteractedWithSlider, setHasInteractedWithSlider] = useState(false);
   
+  // Debug log
+  useEffect(() => {
+    console.log('[MoodCard] Props', {
+      userId,
+      userName,
+      hasVoted,
+      isCurrentUser,
+      onVote: !!onVote,
+      canVote: isCurrentUser && !hasVoted && !!onVote
+    });
+  }, [userId, userName, hasVoted, isCurrentUser, onVote]);
+  
   // Auto-flip when results are revealed
   useEffect(() => {
     if (showResults && !isFlipped) {
@@ -112,22 +124,22 @@ export default function MoodCard({
         </div>
       </div>
       
-      <div className="text-xs text-white text-center max-w-24">
+      <div className="text-xs text-purple-900 text-center max-w-28 font-semibold">
         {userName}
-        {isCurrentUser && <span className="block text-yellow-300">(You)</span>}
+        {isCurrentUser && <span className="block text-purple-600 font-bold">(You)</span>}
       </div>
       
       {/* Voting Interface for Current User */}
       {isCurrentUser && !hasVoted && onVote && (
-        <div className="mt-4 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-lg max-w-full sm:max-w-sm md:max-w-md border-2 border-blue-200">
-          <div className="text-center mb-4">
-            <h3 className="text-xl font-bold text-gray-800 mb-2">How&apos;s your mood today?</h3>
-            <p className="text-sm text-gray-600">Choose an emoji and slide to rate from 1 (very bad) to 10 (excellent)</p>
+        <div className="mt-4 p-6 sm:p-8 glass rounded-3xl shadow-2xl max-w-full sm:max-w-sm md:max-w-md border-2 border-purple-300">
+          <div className="text-center mb-6">
+            <h3 className="text-2xl sm:text-3xl font-bold gradient-text mb-3">How&apos;s your mood today?</h3>
+            <p className="text-sm sm:text-base text-purple-700">Choose an emoji and slide to rate from 1 (very bad) to 10 (excellent)</p>
           </div>
           
           {/* Emoji Input (mobile-friendly) */}
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-3">Enter any emoji that represents your mood:</label>
+            <label className="block text-sm sm:text-base font-bold text-purple-800 mb-3">Enter any emoji that represents your mood:</label>
             <input
               type="text"
               inputMode="text"
@@ -137,29 +149,29 @@ export default function MoodCard({
               placeholder="e.g. 😊, 😤, 🤔, 🧠"
               value={emojiInput}
               onChange={(e) => onEmojiChange(e.target.value)}
-              className={`w-full px-4 py-3 rounded-xl border-2 text-2xl text-center bg-white ${
+              className={`w-full px-4 py-4 rounded-2xl border-2 text-3xl text-center bg-white shadow-inner ${
                 selectedEmoji
-                  ? 'border-blue-500'
+                  ? 'border-purple-500 ring-2 ring-purple-200'
                   : emojiInput
-                    ? 'border-red-300'
-                    : 'border-gray-200'
+                    ? 'border-red-400'
+                    : 'border-purple-200'
               }`}
               maxLength={8}
             />
-            <div className="mt-2 text-center min-h-[20px]">
+            <div className="mt-3 text-center min-h-[24px]">
               {emojiError ? (
-                <span className="text-xs text-red-600">{emojiError}</span>
+                <span className="text-xs sm:text-sm text-red-600 font-semibold">{emojiError}</span>
               ) : selectedEmoji ? (
-                <span className="text-sm text-gray-700">Selected: <span className="text-2xl align-middle">{selectedEmoji}</span></span>
+                <span className="text-sm sm:text-base text-purple-800 font-semibold">Selected: <span className="text-3xl align-middle">{selectedEmoji}</span></span>
               ) : (
-                <span className="text-xs text-gray-500">Tip: Use your mobile emoji keyboard</span>
+                <span className="text-xs sm:text-sm text-purple-600">💡 Tip: Use your mobile emoji keyboard</span>
               )}
             </div>
           </div>
           
           {/* Scale Selection - Slider */}
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-3">Rate your mood:</label>
+            <label className="block text-sm sm:text-base font-bold text-purple-800 mb-4">Rate your mood:</label>
             
             {/* Slider */}
             <div className="px-2">
@@ -174,28 +186,28 @@ export default function MoodCard({
                   setSelectedScale(value);
                   setHasInteractedWithSlider(true);
                 }}
-                className="w-full h-3 bg-gradient-to-r from-red-200 via-yellow-200 to-green-200 rounded-lg appearance-none cursor-pointer mood-slider"
+                className="w-full h-4 bg-gradient-to-r from-red-200 via-yellow-200 to-green-200 rounded-full appearance-none cursor-pointer mood-slider shadow-inner"
               />
               
               {/* Labels */}
-              <div className="flex justify-between mt-2 px-1">
-                <span className="text-xs text-red-600 font-medium">Very Bad</span>
-                <span className="text-xs text-green-600 font-medium">Excellent</span>
+              <div className="flex justify-between mt-3 px-1">
+                <span className="text-xs sm:text-sm text-red-600 font-bold">😢 Very Bad</span>
+                <span className="text-xs sm:text-sm text-green-600 font-bold">🥳 Excellent</span>
               </div>
               
               {/* Scale markers */}
-              <div className="flex justify-between mt-1 px-1">
+              <div className="flex justify-between mt-2 px-1">
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
-                  <span key={num} className="text-xs text-gray-400 w-6 text-center">{num}</span>
+                  <span key={num} className="text-xs text-purple-400 font-semibold w-6 text-center">{num}</span>
                 ))}
               </div>
             </div>
             
             {/* Current Selection Display */}
-            <div className={`mt-4 text-center bg-white rounded-lg p-3 border-2 ${hasInteractedWithSlider ? 'border-blue-500' : 'border-gray-200'}`}>
-              <div className="text-sm text-gray-600 mb-1">{hasInteractedWithSlider ? 'Your rating:' : 'Move slider to rate:'}</div>
-              <div className="text-3xl font-bold text-blue-600">{selectedScale}/10</div>
-              <div className="text-xs text-gray-500 mt-1">
+            <div className={`mt-5 text-center bg-gradient-to-br from-purple-50 to-white rounded-2xl p-4 sm:p-5 border-2 shadow-md ${hasInteractedWithSlider ? 'border-purple-500 ring-2 ring-purple-200' : 'border-purple-200'}`}>
+              <div className="text-xs sm:text-sm text-purple-700 font-semibold mb-2">{hasInteractedWithSlider ? 'Your rating:' : '👆 Move slider to rate'}</div>
+              <div className="text-4xl sm:text-5xl font-bold gradient-text mb-2">{selectedScale}<span className="text-2xl">/10</span></div>
+              <div className="text-sm sm:text-base text-purple-600 font-bold bg-white px-3 py-2 rounded-lg inline-block border border-purple-200">
                 {selectedScale <= 3 && '😢 Very Bad'}
                 {selectedScale === 4 && '😔 Bad'}
                 {selectedScale === 5 && '😐 Neutral'}
@@ -211,7 +223,7 @@ export default function MoodCard({
           <button
             onClick={handleVote}
             disabled={!selectedEmoji || !hasInteractedWithSlider}
-            className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-3 px-6 rounded-xl font-bold text-base sm:text-lg disabled:bg-gray-300 disabled:cursor-not-allowed hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl disabled:shadow-none"
+            className="w-full bg-gradient-to-r from-purple-600 to-purple-700 text-white py-4 px-6 rounded-2xl font-bold text-base sm:text-lg disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed hover:from-purple-700 hover:to-purple-800 transition-all duration-200 shadow-lg hover:shadow-2xl disabled:shadow-none transform hover:scale-[1.02] active:scale-[0.98]"
           >
             {selectedEmoji && hasInteractedWithSlider ? `Submit ${selectedEmoji} ${selectedScale}/10` : 'Submit Vote'}
           </button>
