@@ -82,7 +82,8 @@ app.prepare().then(() => {
       rooms.set(id, {
         users: new Map(),
         votes: new Map(),
-        closed: false
+        closed: false,
+        isVotingOpen: true // Start voting immediately
       });
       const room = rooms.get(id);
       const adminUser = {
@@ -107,6 +108,8 @@ app.prepare().then(() => {
         userCount: room.users.size
       });
       socket.emit("room:created", { roomId: id });
+      // Notify the creator that voting has started
+      socket.emit("voting-started");
     });
 
     // Join room
@@ -116,6 +119,25 @@ app.prepare().then(() => {
         socket.emit("error", { message: "Room not found" });
         return;
       }
+      
+      // Prevent joining finished rooms
+      if (room.finished) {
+        socket.emit("error", { message: "This room has finished. Please create or join another room." });
+        return;
+      }
+      
+      console.log(`[${new Date().toISOString()}] [DEBUG] room:join START`, {
+        roomId,
+        userName: user,
+        socketId: socket.id,
+        currentRoomState: {
+          userCount: room.users.size,
+          isVotingOpen: room.isVotingOpen,
+          closed: room.closed,
+          finished: room.finished
+        }
+      });
+      
       // Try to find existing user by userId
       let rejoined = false;
       if (userId) {
@@ -126,6 +148,7 @@ app.prepare().then(() => {
             room.votes.delete(sid);
             room.users.set(socket.id, { ...u, id: socket.id, name: user, hasVoted: !!u.hasVoted, offline: false, offlineAt: undefined });
             rejoined = true;
+            console.log(`[${new Date().toISOString()}] [DEBUG] User rejoining`, { userId, oldSocketId: sid, newSocketId: socket.id });
             break;
           }
         }
@@ -139,8 +162,18 @@ app.prepare().then(() => {
           hasVoted: false
         };
         room.users.set(socket.id, newUser);
+        console.log(`[${new Date().toISOString()}] [DEBUG] New user added to room`, { socketId: socket.id, userName: user });
       }
+      
+      // Join the socket.io room FIRST
       socket.join(roomId);
+      
+      console.log(`[${new Date().toISOString()}] [DEBUG] Socket joined room, checking membership`, {
+        roomId,
+        socketId: socket.id,
+        roomMembersBeforeEmit: Array.from((io.sockets.adapter.rooms.get(roomId) || new Set()))
+      });
+      
       const allSocketIdsBefore = Array.from((io.sockets.adapter.rooms.get(roomId) || new Set()));
       console.log(`[${new Date().toISOString()}] room:join -> presence about to emit`, {
         roomId,
@@ -149,9 +182,21 @@ app.prepare().then(() => {
         allSocketIds: allSocketIdsBefore,
         users: Array.from(room.users.values()).map(u => ({ id: u.id, name: u.name }))
       });
+      
       // Send presence directly to the joiner as well to ensure they see all users
       socket.emit("presence", { users: Array.from(room.users.values()) });
+      console.log(`[${new Date().toISOString()}] [DEBUG] Direct presence sent to joiner`, {
+        socketId: socket.id,
+        userCount: room.users.size
+      });
+      
+      // Broadcast to everyone in the room
       io.to(roomId).emit("presence", { users: Array.from(room.users.values()) });
+      console.log(`[${new Date().toISOString()}] [DEBUG] Broadcast presence sent to room`, {
+        roomId,
+        userCount: room.users.size
+      });
+      
       const allSocketIdsAfter = Array.from((io.sockets.adapter.rooms.get(roomId) || new Set()));
       console.log(`[${new Date().toISOString()}] room:join -> presence emitted`, {
         roomId,
@@ -159,7 +204,25 @@ app.prepare().then(() => {
         roomUserCount: room.users.size,
         allSocketIds: allSocketIdsAfter
       });
+      
+      // Notify the joiner they've successfully joined
       socket.emit("room:joined", { roomId });
+      
+      // Send current voting state to the new joiner
+      if (room.isVotingOpen) {
+        console.log(`[${new Date().toISOString()}] [DEBUG] Sending voting-started to new joiner`, {
+          socketId: socket.id,
+          roomId
+        });
+        socket.emit("voting-started");
+      }
+      
+      console.log(`[${new Date().toISOString()}] [DEBUG] room:join COMPLETE`, {
+        roomId,
+        socketId: socket.id,
+        userName: user,
+        totalUsers: room.users.size
+      });
     });
 
     // Vote
@@ -195,13 +258,25 @@ app.prepare().then(() => {
         userCount: room.users.size
       });
 
-      // Auto-reveal results if all users have voted
-      const allVoted = Array.from(room.users.values()).every(u => u.hasVoted);
-      if (allVoted && room.users.size > 0) {
+      // Auto-reveal results if all ONLINE users have voted
+      const onlineUsers = Array.from(room.users.values()).filter(u => !u.offline);
+      const allVoted = onlineUsers.length > 0 && onlineUsers.every(u => u.hasVoted);
+      
+      console.log(`[${new Date().toISOString()}] [AUTO-REVEAL CHECK]`, {
+        roomId,
+        totalUsers: room.users.size,
+        onlineUsers: onlineUsers.length,
+        votedUsers: onlineUsers.filter(u => u.hasVoted).length,
+        allVoted,
+        userDetails: onlineUsers.map(u => ({ name: u.name, hasVoted: u.hasVoted }))
+      });
+      
+      if (allVoted) {
         const results = Array.from(room.votes.entries()).map(([user, v]) => ({ user, ...v }));
-        console.log(`[${new Date().toISOString()}] auto-reveal triggered`, {
+        console.log(`[${new Date().toISOString()}] ✅ AUTO-REVEAL TRIGGERED - All online users have voted!`, {
           roomId,
-          votes: results.length
+          votes: results.length,
+          onlineUsers: onlineUsers.length
         });
         io.to(roomId).emit("reveal", { results });
         // Fire-and-forget Slack recap
@@ -271,6 +346,11 @@ app.prepare().then(() => {
     socket.on("finish-session", ({ roomId }) => {
       const room = rooms.get(roomId);
       if (!room) return;
+      
+      // Mark room as finished
+      room.finished = true;
+      room.isVotingOpen = false;
+      
       io.to(roomId).emit("session-finished", { roomId });
       // Optionally send recap on finish
       try {

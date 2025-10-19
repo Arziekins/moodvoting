@@ -42,10 +42,6 @@ export default function VotingRoom({
               <p className="text-gray-600">Room: {room.id}</p>
             </div>
             <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 text-gray-600">
-                <Users className="w-5 h-5" />
-                <span>{room.users.length} participants</span>
-              </div>
               {isAdmin && (
                 <div className="flex items-center space-x-2">
                   <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">
@@ -53,6 +49,32 @@ export default function VotingRoom({
                   </span>
                 </div>
               )}
+            </div>
+          </div>
+
+          {/* Member List */}
+          <div className="mb-4 bg-gray-50 rounded-lg p-4">
+            <div className="flex items-center space-x-2 mb-3">
+              <Users className="w-5 h-5 text-gray-600" />
+              <span className="font-medium text-gray-700">Room Members ({room.users.length})</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {room.users.map((user) => (
+                <div 
+                  key={user.id} 
+                  className="flex items-center space-x-2 bg-white px-3 py-2 rounded-lg shadow-sm"
+                >
+                  <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-medium">
+                    {user.name.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="text-sm font-medium text-gray-800">{user.name}</span>
+                  {user.hasVoted && (
+                    <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-xs font-medium">
+                      ✓
+                    </span>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
 
@@ -91,19 +113,28 @@ export default function VotingRoom({
 
           {/* Status */}
           <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">
-                {room.isVotingOpen 
-                  ? `Voting in progress (${room.users.filter(u => u.hasVoted).length}/${room.users.length} voted)`
-                  : showResults 
-                    ? 'Results revealed'
-                    : 'Waiting for results'
-                }
-              </span>
-              {room.isVotingOpen && allUsersVoted && (
-                <span className="text-sm text-green-600 font-medium">
-                  All votes received! You can reveal or finish.
+            <div className="flex flex-col space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">
+                  {room.isVotingOpen 
+                    ? `Voting in progress (${room.users.filter(u => u.hasVoted).length}/${room.users.length} voted)`
+                    : showResults 
+                      ? '✅ Results revealed automatically'
+                      : 'Waiting for results'
+                  }
                 </span>
+                {room.isVotingOpen && allUsersVoted && !showResults && (
+                  <span className="text-sm text-green-600 font-medium animate-pulse">
+                    🎉 All votes received! Auto-revealing...
+                  </span>
+                )}
+              </div>
+              {room.isVotingOpen && !showResults && (
+                <div className="text-xs text-blue-600 bg-blue-50 px-3 py-2 rounded">
+                  💡 Anyone can join at any time using room code <span className="font-mono font-bold">{room.id}</span>
+                  <br/>
+                  ⚡ Cards will auto-flip when everyone votes!
+                </div>
               )}
             </div>
           </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Vote } from '@/lib/types';
 
 interface MoodCardProps {
@@ -12,9 +12,6 @@ interface MoodCardProps {
   isCurrentUser: boolean;
   onVote?: (vote: Vote) => void;
 }
-
-const emojis = ['😢', '😔', '😐', '🙂', '😊', '😄', '🤩', '🥳', '😍', '🤗'];
-const scales = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 export default function MoodCard({ 
   userId, 
@@ -29,7 +26,19 @@ export default function MoodCard({
   const [selectedEmoji, setSelectedEmoji] = useState('');
   const [emojiInput, setEmojiInput] = useState('');
   const [emojiError, setEmojiError] = useState('');
-  const [selectedScale, setSelectedScale] = useState(0);
+  const [selectedScale, setSelectedScale] = useState(5); // Default to middle value
+  const [hasInteractedWithSlider, setHasInteractedWithSlider] = useState(false);
+  
+  // Auto-flip when results are revealed
+  useEffect(() => {
+    if (showResults && !isFlipped) {
+      // Add a small delay for dramatic effect
+      const timer = setTimeout(() => {
+        setIsFlipped(true);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [showResults, isFlipped]);
 
   const isSingleEmoji = (value: string) => {
     const text = value.trim();
@@ -62,8 +71,8 @@ export default function MoodCard({
   };
 
   const handleVote = () => {
-    if (selectedEmoji && selectedScale > 0 && onVote) {
-      console.log('[vote] submit', { selectedEmoji, selectedScale, buttonDisabled: !selectedEmoji || selectedScale === 0 });
+    if (selectedEmoji && hasInteractedWithSlider && onVote) {
+      console.log('[vote] submit', { selectedEmoji, selectedScale, hasInteractedWithSlider });
       onVote({ emoji: selectedEmoji, scale: selectedScale });
     }
   };
@@ -113,7 +122,7 @@ export default function MoodCard({
         <div className="mt-4 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-lg max-w-full sm:max-w-sm md:max-w-md border-2 border-blue-200">
           <div className="text-center mb-4">
             <h3 className="text-xl font-bold text-gray-800 mb-2">How&apos;s your mood today?</h3>
-            <p className="text-sm text-gray-600">Select an emoji and rate your mood from 1-10</p>
+            <p className="text-sm text-gray-600">Choose an emoji and slide to rate from 1 (very bad) to 10 (excellent)</p>
           </div>
           
           {/* Emoji Input (mobile-friendly) */}
@@ -148,39 +157,63 @@ export default function MoodCard({
             </div>
           </div>
           
-          {/* Scale Selection */}
+          {/* Scale Selection - Slider */}
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-3">Rate your mood intensity (1-10):</label>
-            <div className="flex justify-center space-x-2">
-              {scales.map((scale) => (
-                <button
-                  key={scale}
-                  onClick={() => { console.log('[scale] click', { scale }); setSelectedScale(scale); }}
-                  className={`w-10 h-10 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full text-sm sm:text-sm md:text-base font-bold transition-all duration-200 hover:scale-110 touch-manipulation ${
-                    selectedScale === scale
-                      ? 'bg-blue-500 text-white shadow-lg'
-                      : 'bg-gray-200 text-gray-700 hover:bg-blue-200 hover:text-blue-800'
-                  }`}
-                  style={{ pointerEvents: 'auto', touchAction: 'manipulation' }}
-                >
-                  {scale}
-                </button>
-              ))}
-            </div>
-            {selectedScale > 0 && (
-              <div className="mt-3 text-center">
-                <div className="text-sm text-gray-600 mb-1">Selected rating:</div>
-                <div className="text-2xl font-bold text-blue-600">{selectedScale}/10</div>
+            <label className="block text-sm font-medium text-gray-700 mb-3">Rate your mood:</label>
+            
+            {/* Slider */}
+            <div className="px-2">
+              <input
+                type="range"
+                min="1"
+                max="10"
+                value={selectedScale}
+                onChange={(e) => {
+                  const value = parseInt(e.target.value);
+                  console.log('[scale] slider change', { value });
+                  setSelectedScale(value);
+                  setHasInteractedWithSlider(true);
+                }}
+                className="w-full h-3 bg-gradient-to-r from-red-200 via-yellow-200 to-green-200 rounded-lg appearance-none cursor-pointer mood-slider"
+              />
+              
+              {/* Labels */}
+              <div className="flex justify-between mt-2 px-1">
+                <span className="text-xs text-red-600 font-medium">Very Bad</span>
+                <span className="text-xs text-green-600 font-medium">Excellent</span>
               </div>
-            )}
+              
+              {/* Scale markers */}
+              <div className="flex justify-between mt-1 px-1">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+                  <span key={num} className="text-xs text-gray-400 w-6 text-center">{num}</span>
+                ))}
+              </div>
+            </div>
+            
+            {/* Current Selection Display */}
+            <div className={`mt-4 text-center bg-white rounded-lg p-3 border-2 ${hasInteractedWithSlider ? 'border-blue-500' : 'border-gray-200'}`}>
+              <div className="text-sm text-gray-600 mb-1">{hasInteractedWithSlider ? 'Your rating:' : 'Move slider to rate:'}</div>
+              <div className="text-3xl font-bold text-blue-600">{selectedScale}/10</div>
+              <div className="text-xs text-gray-500 mt-1">
+                {selectedScale <= 3 && '😢 Very Bad'}
+                {selectedScale === 4 && '😔 Bad'}
+                {selectedScale === 5 && '😐 Neutral'}
+                {selectedScale === 6 && '🙂 Okay'}
+                {selectedScale === 7 && '😊 Good'}
+                {selectedScale === 8 && '😄 Great'}
+                {selectedScale === 9 && '🤩 Amazing'}
+                {selectedScale === 10 && '🥳 Excellent'}
+              </div>
+            </div>
           </div>
           
           <button
             onClick={handleVote}
-            disabled={!selectedEmoji || selectedScale === 0}
+            disabled={!selectedEmoji || !hasInteractedWithSlider}
             className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-3 px-6 rounded-xl font-bold text-base sm:text-lg disabled:bg-gray-300 disabled:cursor-not-allowed hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl disabled:shadow-none"
           >
-            {selectedEmoji && selectedScale > 0 ? `Submit ${selectedEmoji} ${selectedScale}/10` : 'Submit Vote'}
+            {selectedEmoji && hasInteractedWithSlider ? `Submit ${selectedEmoji} ${selectedScale}/10` : 'Submit Vote'}
           </button>
         </div>
       )}

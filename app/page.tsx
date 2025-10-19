@@ -4,10 +4,9 @@ import { useState, useEffect } from 'react';
 import { getSocket } from '@/lib/socket';
 import { Room, User, Vote } from '@/lib/types';
 import JoinRoom from '@/components/JoinRoom';
-import RoomLobby from '@/components/RoomLobby';
 import VotingRoom from '@/components/VotingRoom';
 
-type AppState = 'join' | 'lobby' | 'voting';
+type AppState = 'join' | 'voting';
 
 export default function Home() {
   const [appState, setAppState] = useState<AppState>('join');
@@ -28,26 +27,33 @@ export default function Home() {
         name: `Room ${data.roomId}`,
         adminId: socketInstance.id || 'unknown',
         users: [],
-        isVotingOpen: false,
+        isVotingOpen: true, // Start voting immediately
         showResults: false,
         createdAt: new Date(),
       };
       setRoom(newRoom);
-      setAppState('lobby');
+      setAppState('voting'); // Go directly to voting, no lobby
     });
 
     // Handle presence updates (member list changes)
     socketInstance.on('presence', (data: { users: User[] }) => {
       console.log('[presence] update', {
         count: data.users.length,
-        names: data.users.map(u => u.name)
+        names: data.users.map(u => u.name),
+        timestamp: new Date().toISOString()
       });
       setRoom(prevRoom => {
         if (prevRoom) {
+          console.log('[presence] Updating room users', {
+            oldCount: prevRoom.users.length,
+            newCount: data.users.length
+          });
           return {
             ...prevRoom,
             users: data.users
           };
+        } else {
+          console.log('[presence] No previous room, ignoring');
         }
         return prevRoom;
       });
@@ -55,30 +61,27 @@ export default function Home() {
 
     socketInstance.on('room:joined', (data: { roomId: string }) => {
       console.log('Room joined:', data);
-      // Create a basic room object for the UI
+      // Create a basic room object for the UI - don't set users yet, wait for presence
       const joinedRoom: Room = {
         id: data.roomId,
         name: `Room ${data.roomId}`,
         adminId: '',
         users: [],
-        isVotingOpen: false,
+        isVotingOpen: true, // Assume voting is open when joining
         showResults: false,
         createdAt: new Date(),
       };
       setRoom(joinedRoom);
-      setAppState('lobby');
+      setAppState('voting'); // Go directly to voting, no lobby
     });
 
     socketInstance.on('room-updated', (updatedRoom: Room) => {
       setRoom(updatedRoom);
-      if (updatedRoom.isVotingOpen) {
-        setAppState('voting');
-      }
+      // Already in voting, no need to change state
     });
 
     socketInstance.on('voting-started', () => {
-      // Move to voting and mark room as voting open
-      setAppState('voting');
+      // Ensure voting is open
       setRoom(prev => prev ? { ...prev, isVotingOpen: true, showResults: false } : prev);
     });
 
@@ -145,12 +148,6 @@ export default function Home() {
     }
   };
 
-  const handleStartVoting = () => {
-    if (socket && room) {
-      socket.emit('start-voting', { roomId: room.id });
-    }
-  };
-
   const handleFinishSession = () => {
     if (socket && room) {
       socket.emit('finish-session', { roomId: room.id });
@@ -184,30 +181,15 @@ export default function Home() {
     return <JoinRoom onJoinRoom={handleJoinRoom} onCreateRoom={handleCreateRoom} />;
   }
 
-  if (appState === 'lobby') {
-    return (
-      <RoomLobby
-        roomId={room.id}
-        userName={currentUser.name}
-        isAdmin={currentUser.isAdmin}
-        users={room.users}
-        onStartVoting={handleStartVoting}
-      />
-    );
-  }
-
-  if (appState === 'voting') {
-    return (
-      <VotingRoom
-        room={room}
-        currentUser={currentUser}
-        onFinishSession={handleFinishSession}
-        onRevealResults={handleRevealResults}
-        onResetVoting={handleResetVoting}
-        onVote={handleVote}
-      />
-    );
-  }
-
-  return null;
+  // Always show voting room - no lobby
+  return (
+    <VotingRoom
+      room={room}
+      currentUser={currentUser}
+      onFinishSession={handleFinishSession}
+      onRevealResults={handleRevealResults}
+      onResetVoting={handleResetVoting}
+      onVote={handleVote}
+    />
+  );
 }
