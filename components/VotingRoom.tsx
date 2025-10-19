@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Users, Eye, RotateCcw, Flag, TrendingUp, Award, Zap } from 'lucide-react';
 import MoodCard from './MoodCard';
 import { Room, User, Vote } from '@/lib/types';
 
@@ -23,16 +22,10 @@ export default function VotingRoom({
   onVote 
 }: VotingRoomProps) {
   const [showResults, setShowResults] = useState(room.showResults);
-  const [showConfetti, setShowConfetti] = useState(false);
 
   useEffect(() => {
     setShowResults(room.showResults);
-    // Trigger confetti when results are revealed
-    if (room.showResults && !showResults) {
-      setShowConfetti(true);
-      setTimeout(() => setShowConfetti(false), 5000);
-    }
-  }, [room.showResults, showResults]);
+  }, [room.showResults]);
   
   // Debug log
   useEffect(() => {
@@ -58,46 +51,19 @@ export default function VotingRoom({
     : 0;
 
   return (
-    <div className="min-h-screen relative">
-      {/* Confetti effect (visual only) */}
-      {showConfetti && (
-        <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
-          {[...Array(50)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute w-3 h-3 animate-bounce"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `-${Math.random() * 20}px`,
-                backgroundColor: ['#E21B3C', '#1368CE', '#FFA602', '#26890C', '#7B3FF2'][Math.floor(Math.random() * 5)],
-                animationDelay: `${Math.random() * 2}s`,
-                animationDuration: `${2 + Math.random() * 3}s`,
-                borderRadius: '50%',
-              }}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Header Section */}
-      <div className="gradient-animated p-6 sm:p-8 shadow-xl">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div className="min-h-screen apple-gradient-bg">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white mb-2 tracking-tight">
-                Mood Check Session 🎉
-              </h1>
-              <div className="flex items-center space-x-3">
-                <div className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full">
-                  <span className="text-white font-black text-sm sm:text-base">
-                    Room: <span className="font-mono tracking-wider">{room.id}</span>
-                  </span>
-                </div>
+              <h1 className="apple-title mb-1">Mood Check</h1>
+              <div className="flex items-center space-x-2">
+                <span className="apple-badge-gray">
+                  Room: <span className="font-mono font-semibold">{room.id}</span>
+                </span>
                 {isAdmin && (
-                  <div className="bg-yellow-400 px-4 py-2 rounded-full flex items-center space-x-2">
-                    <Award className="w-4 h-4 text-yellow-900" />
-                    <span className="text-yellow-900 font-black text-sm uppercase">Admin</span>
-                  </div>
+                  <span className="apple-badge-purple">Admin</span>
                 )}
               </div>
             </div>
@@ -105,162 +71,150 @@ export default function VotingRoom({
             {/* Admin Controls */}
             {isAdmin && (
               <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={onFinishSession}
-                  className="btn-kahoot kahoot-red flex items-center space-x-2 text-sm sm:text-base px-4 py-2 sm:px-6 sm:py-3"
-                >
-                  <Flag className="w-4 h-4" />
-                  <span>Finish</span>
-                </button>
-                
                 {!room.isVotingOpen && !showResults && (
                   <button
                     onClick={onRevealResults}
-                    className="btn-kahoot kahoot-green flex items-center space-x-2 text-sm sm:text-base px-4 py-2 sm:px-6 sm:py-3"
+                    className="apple-button-primary text-sm"
                   >
-                    <Eye className="w-4 h-4" />
-                    <span>Reveal</span>
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" className="mr-1.5">
+                      <path d="M1 8C1 8 3.5 3 8 3C12.5 3 15 8 15 8C15 8 12.5 13 8 13C3.5 13 1 8 1 8Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <circle cx="8" cy="8" r="2" stroke="currentColor" strokeWidth="1.5"/>
+                    </svg>
+                    Reveal Results
                   </button>
                 )}
                 
                 {showResults && (
                   <button
                     onClick={onResetVoting}
-                    className="btn-kahoot kahoot-purple flex items-center space-x-2 text-sm sm:text-base px-4 py-2 sm:px-6 sm:py-3"
+                    className="apple-button-secondary text-sm"
                   >
-                    <RotateCcw className="w-4 h-4" />
-                    <span>New Round</span>
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" className="mr-1.5">
+                      <path d="M1 8C1 4.13401 4.13401 1 8 1C11.866 1 15 4.13401 15 8C15 11.866 11.866 15 8 15C5.5 15 3.5 13.5 2.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                      <path d="M1 11V8H4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    New Round
                   </button>
                 )}
+                
+                <button
+                  onClick={onFinishSession}
+                  className="apple-button-secondary text-sm text-red-600"
+                >
+                  End Session
+                </button>
               </div>
             )}
           </div>
-
-          {/* Progress Bar */}
-          {room.isVotingOpen && !showResults && (
-            <div className="mb-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-white font-black text-sm uppercase tracking-wide">
-                  Voting Progress
-                </span>
-                <span className="text-white font-black text-lg">
-                  {votedCount}/{totalUsers}
-                </span>
-              </div>
-              <div className="progress-bar">
-                <div 
-                  className="progress-fill"
-                  style={{ width: `${voteProgress}%` }}
-                ></div>
-              </div>
-              {allUsersVoted && (
-                <div className="mt-3 bg-white/20 backdrop-blur-sm rounded-xl px-4 py-3 flex items-center space-x-3 animate-pulse">
-                  <Zap className="w-5 h-5 text-yellow-300" />
-                  <span className="text-white font-black text-sm">
-                    🎉 Everyone voted! Auto-revealing results...
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto p-4 sm:p-6 md:p-8">
-        {/* Status Banner */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        {/* Status Section */}
         <div className="mb-6 sm:mb-8">
           {room.isVotingOpen && !showResults ? (
-            <div className="liquid-glass rounded-2xl p-4 sm:p-6 border-2 border-blue-200">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="apple-card p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="flex items-center space-x-3">
-                  <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-lg sm:text-xl font-black text-gray-800">
-                    📊 Voting in Progress
-                  </span>
+                  <div className="flex-shrink-0 w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <div>
+                    <h2 className="apple-heading text-base">Voting in Progress</h2>
+                    <p className="apple-caption mt-0.5">Waiting for everyone to vote</p>
+                  </div>
                 </div>
-                <div className="bg-blue-50 px-4 py-2 rounded-xl border-2 border-blue-200">
-                  <p className="text-sm font-bold text-blue-800">
-                    💡 Cards will flip automatically when everyone votes!
-                  </p>
+                <div className="flex items-center space-x-3">
+                  <span className="apple-caption">Progress</span>
+                  <span className="text-lg font-semibold text-apple-gray-900">{votedCount}/{totalUsers}</span>
                 </div>
               </div>
-            </div>
-          ) : showResults ? (
-            <div className="liquid-glass rounded-2xl p-4 sm:p-6 border-2 border-green-200">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div className="flex items-center space-x-3">
-                  <Award className="w-6 h-6 text-green-600" />
-                  <span className="text-lg sm:text-xl font-black text-gray-800">
-                    ✅ Results Revealed!
+              
+              {/* Progress Bar */}
+              <div className="mt-4">
+                <div className="apple-progress">
+                  <div 
+                    className="apple-progress-fill"
+                    style={{ width: `${voteProgress}%` }}
+                  ></div>
+                </div>
+              </div>
+              
+              {allUsersVoted && (
+                <div className="mt-4 bg-apple-purple-50 border border-apple-purple-200 rounded-xl px-4 py-3 flex items-center space-x-2">
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M6 10L8.5 12.5L14 7" stroke="#8B5CF6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <circle cx="10" cy="10" r="8" stroke="#8B5CF6" strokeWidth="2"/>
+                  </svg>
+                  <span className="text-sm font-medium text-apple-purple-800">
+                    Everyone voted! Revealing results...
                   </span>
                 </div>
-                <div className="bg-green-50 px-4 py-3 rounded-xl border-2 border-green-200">
-                  <div className="flex items-center space-x-2">
-                    <TrendingUp className="w-5 h-5 text-green-600" />
-                    <span className="text-sm font-black text-green-800">
-                      Team Average: <span className="text-lg">{averageMood.toFixed(1)}/10</span>
-                    </span>
-                  </div>
+              )}
+            </div>
+          ) : showResults ? (
+            <div className="apple-card p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <h2 className="apple-heading text-base">Results Revealed</h2>
+                  <p className="apple-caption mt-0.5">Team mood check complete</p>
+                </div>
+                <div className="bg-apple-purple-50 px-4 py-2 rounded-xl">
+                  <div className="text-sm text-apple-purple-600 font-medium">Average Mood</div>
+                  <div className="text-2xl font-semibold text-apple-purple-900">{averageMood.toFixed(1)}/10</div>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="liquid-glass rounded-2xl p-4 sm:p-6 border-2 border-yellow-200">
+            <div className="apple-card p-4 sm:p-6">
               <div className="flex items-center space-x-3">
-                <div className="w-3 h-3 bg-yellow-500 rounded-full pulse-slow"></div>
-                <span className="text-lg sm:text-xl font-black text-gray-800">
-                  ⏳ Waiting for Results
-                </span>
+                <div className="flex-shrink-0 w-2 h-2 bg-yellow-500 rounded-full"></div>
+                <div>
+                  <h2 className="apple-heading text-base">Waiting for Results</h2>
+                  <p className="apple-caption mt-0.5">Admin will reveal when ready</p>
+                </div>
               </div>
             </div>
           )}
         </div>
 
-        {/* Member List */}
-        <div className="mb-6 sm:mb-8 liquid-glass rounded-2xl p-4 sm:p-6 border-2 border-purple-200">
-          <div className="flex items-center space-x-3 mb-4">
-            <Users className="w-6 h-6 text-purple-600" />
-            <h2 className="text-xl font-black text-gray-800 uppercase tracking-wide">
-              Team Members ({totalUsers})
-            </h2>
-          </div>
-          <div className="flex flex-wrap gap-2 sm:gap-3">
-            {room.users.map((user) => (
-              <div 
-                key={user.id} 
-                className={`flex items-center space-x-2 px-4 py-2 rounded-xl shadow-md border-2 transition-all ${
-                  user.hasVoted 
-                    ? 'bg-green-50 border-green-300' 
-                    : 'bg-gray-50 border-gray-200'
-                }`}
-              >
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-black shadow-sm ${
-                  user.hasVoted ? 'kahoot-green' : 'bg-gray-400'
-                }`}>
-                  {user.name.charAt(0).toUpperCase()}
+        {/* Team Members */}
+        <div className="mb-6 sm:mb-8">
+          <h2 className="apple-heading mb-4">Team Members ({totalUsers})</h2>
+          <div className="apple-card p-4">
+            <div className="flex flex-wrap gap-2">
+              {room.users.map((user) => (
+                <div 
+                  key={user.id} 
+                  className={`inline-flex items-center space-x-2 px-3 py-2 rounded-full transition-all ${
+                    user.hasVoted 
+                      ? 'bg-green-50 border border-green-200' 
+                      : 'bg-gray-50 border border-gray-200'
+                  }`}
+                >
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-medium ${
+                    user.hasVoted ? 'bg-green-500' : 'bg-gray-400'
+                  }`}>
+                    {user.name.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="text-sm font-medium text-apple-gray-800">{user.name}</span>
+                  {user.hasVoted && (
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M4 8L7 11L12 5" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  )}
+                  {user.id === currentUser.id && (
+                    <span className="apple-badge-purple text-xs">You</span>
+                  )}
                 </div>
-                <span className="text-sm font-black text-gray-800">{user.name}</span>
-                {user.hasVoted && (
-                  <span className="text-green-600 font-black">✓</span>
-                )}
-                {user.id === currentUser.id && (
-                  <span className="bg-yellow-400 text-yellow-900 px-2 py-0.5 rounded-full text-xs font-black">
-                    YOU
-                  </span>
-                )}
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Voting Cards Grid */}
+        {/* Mood Cards */}
         <div className="mb-8">
-          <h2 className="text-2xl sm:text-3xl font-black text-gray-800 mb-6 flex items-center space-x-3">
-            <span className="text-3xl">🎴</span>
-            <span>Mood Cards</span>
-          </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6 justify-items-center">
+          <h2 className="apple-heading mb-4">Mood Cards</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
             {room.users.map((user) => (
               <MoodCard
                 key={user.id}
@@ -278,78 +232,61 @@ export default function VotingRoom({
 
         {/* Results Summary */}
         {showResults && (
-          <div className="liquid-glass rounded-3xl shadow-2xl p-6 sm:p-8 border-2 border-purple-300 fade-in-scale">
-            <div className="flex items-center space-x-3 mb-6">
-              <Award className="w-8 h-8 text-purple-600" />
-              <h2 className="text-2xl sm:text-3xl font-black gradient-text-kahoot">
-                Team Mood Summary
-              </h2>
-            </div>
+          <div className="apple-card p-6 sm:p-8">
+            <h2 className="apple-title mb-6">Summary</h2>
 
-            {/* Stats Cards */}
+            {/* Stats */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-5 border-2 border-blue-200">
-                <div className="text-center">
-                  <div className="text-4xl mb-2">👥</div>
-                  <div className="text-3xl font-black text-blue-900">{totalUsers}</div>
-                  <div className="text-sm font-bold text-blue-700 uppercase">Participants</div>
-                </div>
+              <div className="bg-apple-gray-50 rounded-xl p-4 text-center">
+                <div className="text-3xl font-semibold text-apple-gray-900 mb-1">{totalUsers}</div>
+                <div className="apple-caption">Participants</div>
               </div>
               
-              <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-5 border-2 border-green-200">
-                <div className="text-center">
-                  <div className="text-4xl mb-2">📊</div>
-                  <div className="text-3xl font-black text-green-900">{averageMood.toFixed(1)}</div>
-                  <div className="text-sm font-bold text-green-700 uppercase">Avg Mood</div>
-                </div>
+              <div className="bg-apple-purple-50 rounded-xl p-4 text-center">
+                <div className="text-3xl font-semibold text-apple-purple-900 mb-1">{averageMood.toFixed(1)}</div>
+                <div className="apple-caption text-apple-purple-700">Average Mood</div>
               </div>
               
-              <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-5 border-2 border-purple-200">
-                <div className="text-center">
-                  <div className="text-4xl mb-2">✅</div>
-                  <div className="text-3xl font-black text-purple-900">{votedCount}</div>
-                  <div className="text-sm font-bold text-purple-700 uppercase">Total Votes</div>
-                </div>
+              <div className="bg-green-50 rounded-xl p-4 text-center">
+                <div className="text-3xl font-semibold text-green-900 mb-1">{votedCount}</div>
+                <div className="apple-caption text-green-700">Total Votes</div>
               </div>
             </div>
 
             {/* Individual Results */}
-            <div className="space-y-3 max-h-96 overflow-y-auto">
+            <div className="space-y-2">
               {room.users
                 .sort((a, b) => (b.vote?.scale || 0) - (a.vote?.scale || 0))
                 .map((u, index) => (
                   <div 
                     key={u.id} 
-                    className="bg-gradient-to-r from-white to-gray-50 rounded-xl p-4 border-2 border-gray-200 hover:border-purple-300 transition-all flex items-center justify-between fade-in"
-                    style={{ animationDelay: `${index * 0.05}s` }}
+                    className="bg-white border border-gray-200 rounded-xl p-4 hover:border-apple-purple-300 transition-all flex items-center justify-between"
                   >
-                    <div className="flex items-center space-x-4">
-                      <div className="w-10 h-10 kahoot-purple rounded-full flex items-center justify-center text-white text-sm font-black shadow-md">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 apple-gradient-purple rounded-full flex items-center justify-center text-white text-xs font-semibold">
                         #{index + 1}
                       </div>
-                      <div className="w-12 h-12 bg-gradient-to-br from-gray-700 to-gray-900 rounded-full flex items-center justify-center text-white font-black shadow-md">
+                      <div className="w-10 h-10 bg-apple-gray-800 rounded-full flex items-center justify-center text-white font-semibold">
                         {u.name.charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <div className="font-black text-gray-800 text-base sm:text-lg">{u.name}</div>
+                        <div className="font-semibold text-apple-gray-900">{u.name}</div>
                         {u.id === currentUser.id && (
-                          <span className="text-xs font-bold text-purple-600 uppercase">That&apos;s you!</span>
+                          <span className="text-xs font-medium text-apple-purple-600">That's you!</span>
                         )}
                       </div>
                     </div>
                     <div className="flex items-center space-x-3">
                       {u.vote ? (
                         <>
-                          <div className="text-3xl sm:text-4xl">{u.vote.emoji}</div>
-                          <div className="bg-white px-4 py-2 rounded-xl border-2 border-purple-200 shadow-sm">
-                            <span className="text-2xl sm:text-3xl font-black text-purple-600">
-                              {u.vote.scale}
-                            </span>
-                            <span className="text-sm text-gray-600 font-bold">/10</span>
+                          <div className="text-3xl">{u.vote.emoji}</div>
+                          <div className="text-right">
+                            <div className="text-2xl font-semibold text-apple-purple-600">{u.vote.scale}</div>
+                            <div className="text-xs text-apple-gray-500">/10</div>
                           </div>
                         </>
                       ) : (
-                        <span className="text-gray-400 text-sm font-semibold">No vote</span>
+                        <span className="text-sm text-gray-400">No vote</span>
                       )}
                     </div>
                   </div>

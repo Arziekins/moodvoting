@@ -13,13 +13,6 @@ interface MoodCardProps {
   onVote?: (vote: Vote) => void;
 }
 
-// Assign colors based on user position/id for visual variety
-const getCardColor = (userId: string, hasVoted: boolean) => {
-  const colors = ['red', 'blue', 'yellow', 'green', 'purple'];
-  const hash = userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  return hasVoted ? colors[hash % colors.length] : 'purple';
-};
-
 const getMoodEmoji = (scale: number) => {
   if (scale <= 2) return '😢';
   if (scale <= 4) return '😔';
@@ -39,7 +32,7 @@ const getMoodLabel = (scale: number) => {
   if (scale === 7) return 'Good';
   if (scale === 8) return 'Great';
   if (scale === 9) return 'Amazing';
-  return 'Excellent!';
+  return 'Excellent';
 };
 
 export default function MoodCard({ 
@@ -57,9 +50,6 @@ export default function MoodCard({
   const [emojiError, setEmojiError] = useState('');
   const [selectedScale, setSelectedScale] = useState(5);
   const [hasInteractedWithSlider, setHasInteractedWithSlider] = useState(false);
-  const [showVoteSuccess, setShowVoteSuccess] = useState(false);
-  
-  const cardColor = getCardColor(userId, hasVoted);
   
   // Debug log
   useEffect(() => {
@@ -117,8 +107,6 @@ export default function MoodCard({
     if (selectedEmoji && hasInteractedWithSlider && onVote) {
       console.log('[vote] submit', { selectedEmoji, selectedScale, hasInteractedWithSlider });
       onVote({ emoji: selectedEmoji, scale: selectedScale });
-      setShowVoteSuccess(true);
-      setTimeout(() => setShowVoteSuccess(false), 3000);
     }
   };
 
@@ -132,21 +120,26 @@ export default function MoodCard({
     <div className="flex flex-col items-center space-y-3 fade-in">
       {/* The Card */}
       <div 
-        className={`mood-card ${isCurrentUser ? 'ring-4 ring-yellow-400 ring-offset-4' : ''} ${showVoteSuccess ? 'celebrate' : ''}`}
+        className={`mood-card ${isCurrentUser ? 'ring-2 ring-apple-purple-500 ring-offset-2' : ''}`}
         onClick={handleCardClick}
       >
         <div className={`flip-card ${isFlipped ? 'flipped' : ''}`}>
           {/* Card Front (Cover) */}
-          <div className={`card-front card-cover-${cardColor}`}>
+          <div className="card-front card-cover">
             {hasVoted ? (
-              <div className="flex flex-col items-center">
-                <span className="text-6xl mb-2">✓</span>
-                <span className="text-xs font-bold opacity-90">VOTED</span>
+              <div className="flex flex-col items-center text-white">
+                <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="mb-2">
+                  <circle cx="24" cy="24" r="20" stroke="white" strokeWidth="3"/>
+                  <path d="M16 24L21 29L32 18" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <span className="text-xs font-medium opacity-90">Voted</span>
               </div>
             ) : (
-              <div className="flex flex-col items-center">
-                <span className="text-6xl mb-2">?</span>
-                <span className="text-xs font-bold opacity-90 pulse-slow">WAITING</span>
+              <div className="flex flex-col items-center text-white opacity-60">
+                <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="mb-2 animate-pulse">
+                  <circle cx="24" cy="24" r="20" stroke="white" strokeWidth="3" strokeDasharray="4 4"/>
+                </svg>
+                <span className="text-xs font-medium">Waiting</span>
               </div>
             )}
           </div>
@@ -154,21 +147,21 @@ export default function MoodCard({
           {/* Card Back (Content) */}
           <div className="card-back card-content">
             {showResults && vote ? (
-              <div className="text-center h-full flex flex-col items-center justify-center">
-                <div className="text-6xl mb-3 animate-bounce">{vote.emoji}</div>
-                <div className="text-3xl font-black text-gray-800 mb-2">
-                  {vote.scale}<span className="text-xl">/10</span>
+              <div className="text-center h-full flex flex-col items-center justify-center p-4">
+                <div className="text-5xl mb-3">{vote.emoji}</div>
+                <div className="text-3xl font-semibold text-apple-gray-900 mb-1">
+                  {vote.scale}
                 </div>
-                <div className="text-xs font-bold text-gray-600 uppercase tracking-wide">
+                <div className="text-xs font-medium text-apple-gray-500">
                   {getMoodLabel(vote.scale)}
                 </div>
               </div>
             ) : (
-              <div className="text-center h-full flex flex-col items-center justify-center">
-                <div className="text-sm font-bold text-gray-600 mb-2">{userName}</div>
-                <div className="text-3xl mb-2">{hasVoted ? '✅' : '⏳'}</div>
-                <div className="text-xs text-gray-500 font-semibold">
-                  {hasVoted ? 'Voted!' : 'Waiting...'}
+              <div className="text-center h-full flex flex-col items-center justify-center p-4">
+                <div className="text-sm font-medium text-apple-gray-600 mb-2">{userName}</div>
+                <div className="text-2xl mb-2">{hasVoted ? '✓' : '⏳'}</div>
+                <div className="text-xs text-apple-gray-400">
+                  {hasVoted ? 'Voted' : 'Waiting'}
                 </div>
               </div>
             )}
@@ -178,11 +171,11 @@ export default function MoodCard({
       
       {/* User Name Label */}
       <div className="text-center">
-        <div className="text-sm font-black text-gray-800">
+        <div className="text-sm font-medium text-apple-gray-800">
           {userName}
         </div>
         {isCurrentUser && (
-          <div className="inline-block bg-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-xs font-black uppercase mt-1">
+          <div className="inline-block apple-badge-purple text-xs mt-1">
             You
           </div>
         )}
@@ -190,23 +183,27 @@ export default function MoodCard({
       
       {/* Voting Interface for Current User */}
       {isCurrentUser && !hasVoted && onVote && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4 z-50 fade-in">
-          <div className="liquid-glass rounded-3xl shadow-2xl max-w-md w-full p-6 sm:p-8 border-2 border-white/50 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 apple-overlay flex items-center justify-center p-4 z-50 fade-in">
+          <div className="apple-card max-w-md w-full p-6 sm:p-8 max-h-[90vh] overflow-y-auto scale-in">
+            {/* Header */}
             <div className="text-center mb-6">
-              <div className="inline-block gradient-animated p-4 rounded-2xl mb-4">
-                <span className="text-4xl">🎯</span>
+              <div className="inline-flex items-center justify-center w-16 h-16 apple-gradient-purple rounded-2xl mb-4">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="16" cy="16" r="12" stroke="white" strokeWidth="2.5"/>
+                  <circle cx="12" cy="14" r="1.5" fill="white"/>
+                  <circle cx="20" cy="14" r="1.5" fill="white"/>
+                  <path d="M12 20C12 20 13.5 22 16 22C18.5 22 20 20 20 20" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
+                </svg>
               </div>
-              <h3 className="text-2xl sm:text-3xl font-black gradient-text-kahoot mb-2">
-                How&apos;s Your Mood?
-              </h3>
-              <p className="text-sm sm:text-base text-gray-600 font-semibold">
-                Pick an emoji and rate 1 (bad) to 10 (excellent)
+              <h3 className="apple-title mb-2">How's Your Mood?</h3>
+              <p className="apple-caption">
+                Pick an emoji and rate your mood from 1 to 10
               </p>
             </div>
             
             {/* Emoji Input */}
             <div className="mb-6">
-              <label className="block text-sm font-black text-gray-700 mb-3 uppercase tracking-wide">
+              <label className="block text-sm font-medium text-apple-gray-700 mb-2">
                 Choose Your Emoji
               </label>
               <input
@@ -218,37 +215,39 @@ export default function MoodCard({
                 placeholder="😊"
                 value={emojiInput}
                 onChange={(e) => onEmojiChange(e.target.value)}
-                className={`w-full px-5 py-5 rounded-2xl border-3 text-5xl text-center bg-white shadow-lg transition-all ${
+                className={`apple-input text-4xl text-center ${
                   selectedEmoji
-                    ? 'border-green-400 ring-4 ring-green-200'
+                    ? 'ring-2 ring-green-500 border-green-500'
                     : emojiInput
-                      ? 'border-red-400 ring-4 ring-red-200'
-                      : 'border-gray-200'
+                      ? 'ring-2 ring-red-500 border-red-500'
+                      : ''
                 }`}
                 maxLength={8}
               />
-              <div className="mt-3 text-center min-h-[28px]">
+              <div className="mt-2 text-center min-h-[24px]">
                 {emojiError ? (
-                  <span className="text-sm text-red-600 font-bold">{emojiError}</span>
+                  <span className="text-sm text-red-600">{emojiError}</span>
                 ) : selectedEmoji ? (
-                  <span className="text-sm text-green-600 font-bold flex items-center justify-center space-x-2">
-                    <span>✓</span>
+                  <span className="text-sm text-green-600 flex items-center justify-center space-x-1">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M4 8L7 11L12 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
                     <span>Perfect!</span>
                   </span>
                 ) : (
-                  <span className="text-xs text-gray-500 font-semibold">💡 Use your emoji keyboard</span>
+                  <span className="text-xs text-apple-gray-400">Use your emoji keyboard</span>
                 )}
               </div>
             </div>
             
             {/* Scale Selection */}
             <div className="mb-6">
-              <label className="block text-sm font-black text-gray-700 mb-4 uppercase tracking-wide">
+              <label className="block text-sm font-medium text-apple-gray-700 mb-4">
                 Rate Your Mood
               </label>
               
               {/* Slider */}
-              <div className="px-2">
+              <div className="px-1">
                 <input
                   type="range"
                   min="1"
@@ -259,7 +258,13 @@ export default function MoodCard({
                     setSelectedScale(value);
                     setHasInteractedWithSlider(true);
                   }}
-                  className="w-full mood-slider bg-gradient-to-r from-red-300 via-yellow-300 to-green-300 shadow-inner"
+                  className="apple-slider"
+                  style={{
+                    background: `linear-gradient(to right, 
+                      #EF4444 0%, 
+                      #F59E0B ${((selectedScale - 1) / 9) * 50}%, 
+                      #10B981 ${((selectedScale - 1) / 9) * 100}%)`
+                  }}
                 />
                 
                 {/* Scale Numbers */}
@@ -272,9 +277,9 @@ export default function MoodCard({
                         setSelectedScale(num);
                         setHasInteractedWithSlider(true);
                       }}
-                      className={`w-8 h-8 rounded-full text-xs font-black transition-all ${
+                      className={`w-7 h-7 rounded-full text-xs font-semibold transition-all ${
                         selectedScale === num
-                          ? 'bg-gradient-to-br from-purple-500 to-pink-500 text-white scale-125 shadow-lg'
+                          ? 'bg-apple-purple-600 text-white scale-110 shadow-apple-sm'
                           : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}
                     >
@@ -285,17 +290,17 @@ export default function MoodCard({
               </div>
               
               {/* Current Selection Display */}
-              <div className={`mt-5 rounded-2xl p-5 border-3 shadow-md transition-all ${
+              <div className={`mt-5 rounded-xl p-5 transition-all ${
                 hasInteractedWithSlider 
-                  ? 'bg-gradient-to-br from-purple-50 to-pink-50 border-purple-300' 
-                  : 'bg-gray-50 border-gray-200'
+                  ? 'bg-apple-purple-50 border border-apple-purple-200' 
+                  : 'bg-gray-50 border border-gray-200'
               }`}>
                 <div className="text-center">
                   <div className="text-5xl mb-2">{getMoodEmoji(selectedScale)}</div>
-                  <div className="text-4xl font-black gradient-text-kahoot mb-2">
-                    {selectedScale}<span className="text-xl">/10</span>
+                  <div className="text-4xl font-semibold text-apple-purple-600 mb-1">
+                    {selectedScale}/10
                   </div>
-                  <div className="inline-block bg-white px-4 py-2 rounded-xl border-2 border-purple-200 font-black text-sm text-gray-700 uppercase">
+                  <div className="inline-block bg-white px-3 py-1.5 rounded-lg border border-apple-purple-200 text-sm font-medium text-apple-gray-700">
                     {getMoodLabel(selectedScale)}
                   </div>
                 </div>
@@ -306,26 +311,21 @@ export default function MoodCard({
             <button
               onClick={handleVote}
               disabled={!selectedEmoji || !hasInteractedWithSlider}
-              className={`w-full btn-kahoot flex items-center justify-center space-x-3 ${
-                selectedEmoji && hasInteractedWithSlider ? 'kahoot-green' : 'bg-gray-300'
+              className={`w-full apple-button-primary ${
+                (!selectedEmoji || !hasInteractedWithSlider) ? 'opacity-40' : ''
               }`}
             >
-              <span className="text-2xl">
-                {selectedEmoji && hasInteractedWithSlider ? '🎉' : '⏳'}
-              </span>
-              <span>
-                {selectedEmoji && hasInteractedWithSlider 
-                  ? `Submit ${selectedEmoji} ${selectedScale}/10` 
-                  : 'Choose emoji & rating'}
-              </span>
+              {selectedEmoji && hasInteractedWithSlider 
+                ? `Submit ${selectedEmoji} ${selectedScale}/10` 
+                : 'Choose emoji & rating'}
             </button>
 
             {/* Tip */}
             {(!selectedEmoji || !hasInteractedWithSlider) && (
-              <p className="mt-4 text-xs text-center text-gray-500 font-semibold">
-                {!selectedEmoji && !hasInteractedWithSlider && '👆 Pick an emoji and slide to rate'}
-                {!selectedEmoji && hasInteractedWithSlider && '👆 Pick an emoji to continue'}
-                {selectedEmoji && !hasInteractedWithSlider && '👆 Slide to rate your mood'}
+              <p className="mt-4 text-xs text-center text-apple-gray-400">
+                {!selectedEmoji && !hasInteractedWithSlider && 'Pick an emoji and slide to rate'}
+                {!selectedEmoji && hasInteractedWithSlider && 'Pick an emoji to continue'}
+                {selectedEmoji && !hasInteractedWithSlider && 'Slide to rate your mood'}
               </p>
             )}
           </div>

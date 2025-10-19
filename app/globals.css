@@ -4,96 +4,104 @@
 
 @layer base {
   body {
-    @apply bg-gradient-to-br from-blue-50 via-white to-purple-50 min-h-screen md:min-h-screen min-h-[100dvh];
+    @apply bg-white text-apple-gray-900 min-h-screen antialiased;
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
 @layer components {
-  /* Kahoot-inspired color system */
-  .kahoot-red {
-    @apply bg-gradient-to-br from-[#E21B3C] to-[#C41230];
+  /* Apple-style Card - Inspired by Day One, Things, and Bear */
+  .apple-card {
+    @apply bg-white rounded-2xl border border-gray-200 shadow-apple;
+    transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
   }
   
-  .kahoot-blue {
-    @apply bg-gradient-to-br from-[#1368CE] to-[#0E53A3];
+  .apple-card:hover {
+    @apply shadow-apple-lg;
+    transform: translateY(-1px);
   }
   
-  .kahoot-yellow {
-    @apply bg-gradient-to-br from-[#FFA602] to-[#E69500];
+  /* Apple-style Button - Following HIG */
+  .apple-button {
+    @apply inline-flex items-center justify-center px-6 py-3 rounded-full font-medium transition-all duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-apple-purple-500 focus:ring-offset-2;
   }
   
-  .kahoot-green {
-    @apply bg-gradient-to-br from-[#26890C] to-[#1E6C0A];
+  .apple-button-primary {
+    @apply apple-button bg-apple-purple-600 text-white shadow-apple-sm;
   }
   
-  .kahoot-purple {
-    @apply bg-gradient-to-br from-[#7B3FF2] to-[#6230C2];
+  .apple-button-primary:hover:not(:disabled) {
+    @apply bg-apple-purple-700;
+    transform: scale(1.02);
   }
   
-  /* Liquid Glass effect - Apple 2025 design language */
-  .liquid-glass {
-    background: rgba(255, 255, 255, 0.85);
+  .apple-button-primary:active:not(:disabled) {
+    @apply bg-apple-purple-800;
+    transform: scale(0.98);
+  }
+  
+  .apple-button-primary:disabled {
+    @apply opacity-40 cursor-not-allowed;
+  }
+  
+  .apple-button-secondary {
+    @apply apple-button bg-apple-gray-100 text-apple-gray-900;
+  }
+  
+  .apple-button-secondary:hover:not(:disabled) {
+    @apply bg-apple-gray-200;
+  }
+  
+  /* Apple-style Input - Clean and minimal */
+  .apple-input {
+    @apply w-full px-4 py-3 rounded-xl border border-gray-200 bg-white;
+    @apply focus:outline-none focus:ring-2 focus:ring-apple-purple-500 focus:border-transparent;
+    @apply transition-all duration-200;
+  }
+  
+  .apple-input:focus {
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+  }
+  
+  /* Subtle gradient background - Not overwhelming */
+  .apple-gradient-bg {
+    background: linear-gradient(to bottom, #ffffff 0%, #fafafa 100%);
+  }
+  
+  .apple-gradient-purple {
+    background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%);
+  }
+  
+  /* Glass morphism effect - Inspired by iOS/macOS design */
+  .apple-glass {
+    background: rgba(255, 255, 255, 0.8);
     backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.18);
   }
   
-  .liquid-glass-dark {
-    background: rgba(30, 30, 30, 0.75);
-    backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  }
-  
-  /* Enhanced Cards with depth */
+  /* Mood card styling - Minimal and elegant */
   .mood-card {
-    @apply relative w-32 h-40 sm:w-36 sm:h-48 md:w-40 md:h-52 lg:w-44 lg:h-56 rounded-3xl cursor-pointer transition-all duration-300 transform-gpu;
-    box-shadow: 
-      0 10px 30px -5px rgba(0, 0, 0, 0.15),
-      0 0 0 1px rgba(0, 0, 0, 0.05);
+    @apply relative w-32 h-40 sm:w-36 sm:h-48 rounded-2xl cursor-pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
   }
   
   .mood-card:hover {
-    transform: translateY(-8px) scale(1.03);
-    box-shadow: 
-      0 20px 50px -10px rgba(0, 0, 0, 0.25),
-      0 0 0 1px rgba(0, 0, 0, 0.05);
+    transform: translateY(-4px);
   }
   
   .mood-card:active {
-    transform: translateY(-4px) scale(1.01);
+    transform: translateY(-2px);
   }
   
-  .card-cover-red {
-    @apply absolute inset-0 kahoot-red rounded-3xl flex items-center justify-center text-white font-black text-5xl shadow-lg;
-  }
-  
-  .card-cover-blue {
-    @apply absolute inset-0 kahoot-blue rounded-3xl flex items-center justify-center text-white font-black text-5xl shadow-lg;
-  }
-  
-  .card-cover-yellow {
-    @apply absolute inset-0 kahoot-yellow rounded-3xl flex items-center justify-center text-white font-black text-5xl shadow-lg;
-  }
-  
-  .card-cover-green {
-    @apply absolute inset-0 kahoot-green rounded-3xl flex items-center justify-center text-white font-black text-5xl shadow-lg;
-  }
-  
-  .card-cover-purple {
-    @apply absolute inset-0 kahoot-purple rounded-3xl flex items-center justify-center text-white font-black text-5xl shadow-lg;
-  }
-  
-  .card-content {
-    @apply absolute inset-0 bg-white rounded-3xl flex flex-col items-center justify-center p-4 shadow-inner;
-    border: 3px solid #F0F0F0;
-  }
-  
+  /* Flip card animation */
   .flip-card {
     @apply relative w-full h-full;
     transform-style: preserve-3d;
-    transition: transform 0.7s cubic-bezier(0.4, 0.0, 0.2, 1);
+    transition: transform 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
   }
   
   .flip-card.flipped {
@@ -101,7 +109,7 @@
   }
   
   .card-front, .card-back {
-    @apply absolute inset-0 rounded-3xl;
+    @apply absolute inset-0 rounded-2xl;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
   }
@@ -110,213 +118,101 @@
     transform: rotateY(180deg);
   }
   
-  /* Kahoot-style buttons */
-  .btn-kahoot {
-    @apply font-black text-white rounded-2xl px-8 py-4 text-lg sm:text-xl transition-all duration-200 transform-gpu shadow-lg;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+  /* Card covers - Subtle purple gradient */
+  .card-cover {
+    @apply absolute inset-0 rounded-2xl flex items-center justify-center shadow-apple;
+    background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%);
   }
   
-  .btn-kahoot:hover:not(:disabled) {
-    transform: translateY(-2px) scale(1.02);
-    box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.3);
+  .card-content {
+    @apply absolute inset-0 bg-white rounded-2xl flex flex-col items-center justify-center shadow-apple;
+    border: 1px solid #E5E5E5;
   }
   
-  .btn-kahoot:active:not(:disabled) {
-    transform: translateY(0) scale(0.98);
-  }
-  
-  .btn-kahoot:disabled {
-    @apply opacity-50 cursor-not-allowed;
-  }
-  
-  /* Animated gradient background */
-  .gradient-animated {
-    background: linear-gradient(
-      -45deg,
-      #E21B3C,
-      #1368CE,
-      #FFA602,
-      #26890C,
-      #7B3FF2
-    );
-    background-size: 400% 400%;
-    animation: gradient-shift 15s ease infinite;
-  }
-  
-  @keyframes gradient-shift {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-  }
-  
-  /* Pulse animation for waiting states */
-  .pulse-slow {
-    animation: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  }
-  
-  @keyframes pulse-slow {
-    0%, 100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.6;
-    }
-  }
-  
-  /* Custom slider - fun and colorful */
-  .mood-slider {
+  /* Apple-style slider - Inspired by iOS sliders */
+  .apple-slider {
     -webkit-appearance: none;
     appearance: none;
-    height: 16px;
-    border-radius: 12px;
-    outline: none;
+    @apply w-full h-2 rounded-full bg-gray-200 outline-none;
   }
   
-  .mood-slider::-webkit-slider-thumb {
+  .apple-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #7B3FF2 0%, #E21B3C 100%);
-    cursor: grab;
-    border: 4px solid white;
-    box-shadow: 
-      0 4px 12px rgba(123, 63, 242, 0.4),
-      0 0 0 2px rgba(123, 63, 242, 0.2);
+    @apply w-6 h-6 rounded-full bg-white cursor-pointer;
+    border: 0.5px solid rgba(0, 0, 0, 0.04);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
   }
   
-  .mood-slider::-webkit-slider-thumb:hover {
-    transform: scale(1.25);
-    box-shadow: 
-      0 6px 20px rgba(123, 63, 242, 0.5),
-      0 0 0 4px rgba(123, 63, 242, 0.3);
+  .apple-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
   }
   
-  .mood-slider::-webkit-slider-thumb:active {
-    cursor: grabbing;
-    transform: scale(1.15);
+  .apple-slider::-webkit-slider-thumb:active {
+    transform: scale(1.05);
   }
   
-  .mood-slider::-moz-range-thumb {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #7B3FF2 0%, #E21B3C 100%);
-    cursor: grab;
-    border: 4px solid white;
-    box-shadow: 
-      0 4px 12px rgba(123, 63, 242, 0.4),
-      0 0 0 2px rgba(123, 63, 242, 0.2);
+  .apple-slider::-moz-range-thumb {
+    @apply w-6 h-6 rounded-full bg-white cursor-pointer border-0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
   }
   
-  .mood-slider::-moz-range-thumb:hover {
-    transform: scale(1.25);
-    box-shadow: 
-      0 6px 20px rgba(123, 63, 242, 0.5),
-      0 0 0 4px rgba(123, 63, 242, 0.3);
+  .apple-slider::-moz-range-thumb:hover {
+    transform: scale(1.1);
   }
   
-  .mood-slider::-moz-range-thumb:active {
-    cursor: grabbing;
-    transform: scale(1.15);
+  .apple-slider::-moz-range-thumb:active {
+    transform: scale(1.05);
   }
   
-  /* Celebration animation */
-  .celebrate {
-    animation: celebrate 0.6s cubic-bezier(0.36, 0, 0.66, -0.56);
+  /* Progress bar - Minimal design */
+  .apple-progress {
+    @apply h-2 rounded-full bg-gray-200 overflow-hidden;
   }
   
-  @keyframes celebrate {
-    0% {
-      transform: scale(1);
-    }
-    50% {
-      transform: scale(1.3) rotate(5deg);
-    }
-    100% {
-      transform: scale(1);
-    }
+  .apple-progress-fill {
+    @apply h-full transition-all duration-500 ease-out rounded-full;
+    background: linear-gradient(90deg, #8B5CF6 0%, #7C3AED 100%);
   }
   
-  /* Bounce animation for interactive elements */
-  .bounce-subtle {
-    animation: bounce-subtle 2s ease-in-out infinite;
-  }
-  
-  @keyframes bounce-subtle {
-    0%, 100% {
-      transform: translateY(0);
-    }
-    50% {
-      transform: translateY(-10px);
-    }
-  }
-  
-  /* Shimmer effect for loading states */
-  .shimmer {
-    background: linear-gradient(
-      90deg,
-      rgba(255, 255, 255, 0) 0%,
-      rgba(255, 255, 255, 0.8) 50%,
-      rgba(255, 255, 255, 0) 100%
-    );
-    background-size: 200% 100%;
-    animation: shimmer 2s infinite;
-  }
-  
-  @keyframes shimmer {
-    0% {
-      background-position: -200% 0;
-    }
-    100% {
-      background-position: 200% 0;
-    }
-  }
-  
-  /* Gradient text - multi-color */
-  .gradient-text-kahoot {
-    background: linear-gradient(135deg, #E21B3C 0%, #7B3FF2 50%, #1368CE 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    font-weight: 900;
-  }
-  
-  /* Progress bar */
-  .progress-bar {
-    @apply h-3 rounded-full overflow-hidden;
-    background: rgba(0, 0, 0, 0.1);
-  }
-  
-  .progress-fill {
-    @apply h-full transition-all duration-500 ease-out;
-    background: linear-gradient(90deg, #26890C 0%, #FFA602 50%, #E21B3C 100%);
-  }
-  
-  /* Floating animation */
-  .float {
-    animation: float 3s ease-in-out infinite;
-  }
-  
-  @keyframes float {
-    0%, 100% {
-      transform: translateY(0px);
-    }
-    50% {
-      transform: translateY(-20px);
-    }
-  }
-  
-  /* Fade in animations */
+  /* Animations - Smooth and purposeful */
   .fade-in {
-    animation: fadeIn 0.5s ease-in;
+    animation: fadeIn 0.3s ease-out;
   }
   
   @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .scale-in {
+    animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  
+  .slide-up {
+    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  @keyframes slideUp {
     from {
       opacity: 0;
       transform: translateY(20px);
@@ -327,18 +223,48 @@
     }
   }
   
-  .fade-in-scale {
-    animation: fadeInScale 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  /* Text styles following Apple's typography */
+  .apple-title {
+    @apply text-3xl font-semibold tracking-tight text-apple-gray-900;
   }
   
-  @keyframes fadeInScale {
-    from {
-      opacity: 0;
-      transform: scale(0.9);
-    }
-    to {
-      opacity: 1;
-      transform: scale(1);
-    }
+  .apple-heading {
+    @apply text-xl font-semibold text-apple-gray-900;
+  }
+  
+  .apple-body {
+    @apply text-base text-apple-gray-700;
+  }
+  
+  .apple-caption {
+    @apply text-sm text-apple-gray-500;
+  }
+  
+  /* Badge - Like iOS badges */
+  .apple-badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  
+  .apple-badge-purple {
+    @apply apple-badge bg-apple-purple-100 text-apple-purple-800;
+  }
+  
+  .apple-badge-gray {
+    @apply apple-badge bg-gray-100 text-gray-800;
+  }
+  
+  /* Divider */
+  .apple-divider {
+    @apply border-t border-gray-200;
+  }
+  
+  /* Overlay - For modals/sheets */
+  .apple-overlay {
+    @apply fixed inset-0 bg-black/20 backdrop-blur-sm;
+  }
+  
+  /* Sheet/Modal - iOS-style bottom sheet */
+  .apple-sheet {
+    @apply bg-white rounded-t-3xl shadow-apple-xl;
   }
 }
