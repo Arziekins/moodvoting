@@ -95,21 +95,34 @@ app.prepare().then(() => {
       };
       room.users.set(socket.id, adminUser);
       socket.join(id);
-      console.log(`[${new Date().toISOString()}] room:create -> presence about to emit`, {
+      
+      console.log(`[${new Date().toISOString()}] room:create -> about to send events`, {
         roomId: id,
         userCount: room.users.size,
         users: Array.from(room.users.values()).map(u => ({ id: u.id, name: u.name }))
       });
-      // Send presence directly to the creator as well to avoid race conditions
-      socket.emit("presence", { users: Array.from(room.users.values()) });
-      io.to(id).emit("presence", { users: Array.from(room.users.values()) });
-      console.log(`[${new Date().toISOString()}] room:create -> presence emitted`, {
+      
+      // CRITICAL: Send room:created FIRST so client creates room object
+      socket.emit("room:created", { roomId: id });
+      console.log(`[${new Date().toISOString()}] [DEBUG] room:created sent`, {
+        roomId: id,
+        socketId: socket.id
+      });
+      
+      // Notify the creator that voting has started
+      socket.emit("voting-started");
+      
+      // NOW send presence events (after room:created so client has room object)
+      console.log(`[${new Date().toISOString()}] room:create -> now emitting presence`, {
         roomId: id,
         userCount: room.users.size
       });
-      socket.emit("room:created", { roomId: id });
-      // Notify the creator that voting has started
-      socket.emit("voting-started");
+      socket.emit("presence", { users: Array.from(room.users.values()) });
+      io.to(id).emit("presence", { users: Array.from(room.users.values()) });
+      console.log(`[${new Date().toISOString()}] room:create -> presence emitted AFTER room:created`, {
+        roomId: id,
+        userCount: room.users.size
+      });
     });
 
     // Join room
@@ -174,18 +187,40 @@ app.prepare().then(() => {
         roomMembersBeforeEmit: Array.from((io.sockets.adapter.rooms.get(roomId) || new Set()))
       });
       
-      const allSocketIdsBefore = Array.from((io.sockets.adapter.rooms.get(roomId) || new Set()));
-      console.log(`[${new Date().toISOString()}] room:join -> presence about to emit`, {
+      const allSocketIdsAfter = Array.from((io.sockets.adapter.rooms.get(roomId) || new Set()));
+      console.log(`[${new Date().toISOString()}] room:join -> about to send events`, {
         roomId,
         userName: user,
         roomUserCount: room.users.size,
-        allSocketIds: allSocketIdsBefore,
-        users: Array.from(room.users.values()).map(u => ({ id: u.id, name: u.name }))
+        allSocketIds: allSocketIdsAfter
       });
       
-      // Send presence directly to the joiner as well to ensure they see all users
+      // CRITICAL: Send room:joined FIRST so client creates room object
+      socket.emit("room:joined", { roomId });
+      console.log(`[${new Date().toISOString()}] [DEBUG] room:joined sent to new joiner`, {
+        socketId: socket.id,
+        roomId
+      });
+      
+      // Send current voting state to the new joiner
+      if (room.isVotingOpen) {
+        console.log(`[${new Date().toISOString()}] [DEBUG] Sending voting-started to new joiner`, {
+          socketId: socket.id,
+          roomId
+        });
+        socket.emit("voting-started");
+      }
+      
+      // NOW send presence events (after room:joined so client has room object)
+      console.log(`[${new Date().toISOString()}] room:join -> now emitting presence`, {
+        roomId,
+        userName: user,
+        roomUserCount: room.users.size
+      });
+      
+      // Send presence directly to the joiner
       socket.emit("presence", { users: Array.from(room.users.values()) });
-      console.log(`[${new Date().toISOString()}] [DEBUG] Direct presence sent to joiner`, {
+      console.log(`[${new Date().toISOString()}] [DEBUG] Direct presence sent to joiner AFTER room:joined`, {
         socketId: socket.id,
         userCount: room.users.size
       });
@@ -196,26 +231,6 @@ app.prepare().then(() => {
         roomId,
         userCount: room.users.size
       });
-      
-      const allSocketIdsAfter = Array.from((io.sockets.adapter.rooms.get(roomId) || new Set()));
-      console.log(`[${new Date().toISOString()}] room:join -> presence emitted`, {
-        roomId,
-        userName: user,
-        roomUserCount: room.users.size,
-        allSocketIds: allSocketIdsAfter
-      });
-      
-      // Notify the joiner they've successfully joined
-      socket.emit("room:joined", { roomId });
-      
-      // Send current voting state to the new joiner
-      if (room.isVotingOpen) {
-        console.log(`[${new Date().toISOString()}] [DEBUG] Sending voting-started to new joiner`, {
-          socketId: socket.id,
-          roomId
-        });
-        socket.emit("voting-started");
-      }
       
       console.log(`[${new Date().toISOString()}] [DEBUG] room:join COMPLETE`, {
         roomId,
