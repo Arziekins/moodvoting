@@ -195,7 +195,7 @@ export default function MoodCard({
                   <path d="M12 20C12 20 13.5 22 16 22C18.5 22 20 20 20 20" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
                 </svg>
               </div>
-              <h3 className="apple-title mb-2">How's Your Mood?</h3>
+              <h3 className="apple-title mb-2">How&apos;s Your Mood?</h3>
               <p className="apple-caption">
                 Pick an emoji and rate your mood from 1 to 10
               </p>

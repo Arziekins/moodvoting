@@ -272,7 +272,7 @@ export default function VotingRoom({
                       <div>
                         <div className="font-semibold text-apple-gray-900">{u.name}</div>
                         {u.id === currentUser.id && (
-                          <span className="text-xs font-medium text-apple-purple-600">That's you!</span>
+                          <span className="text-xs font-medium text-apple-purple-600">That&apos;s you!</span>
                         )}
                       </div>
                     </div>

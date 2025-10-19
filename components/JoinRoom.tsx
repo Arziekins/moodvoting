@@ -412,7 +412,7 @@ export default function JoinRoom({ onJoinRoom, onCreateRoom }: JoinRoomProps) {
 
             <div className="mb-6 p-4 bg-apple-gray-50 rounded-xl">
               <p className="text-sm text-apple-gray-600 text-center">
-                You'll be the admin and can manage the voting session
+                You&apos;ll be the admin and can manage the voting session
               </p>
             </div>
 
