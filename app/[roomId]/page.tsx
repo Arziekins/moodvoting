@@ -9,7 +9,7 @@ import VotingRoom from '@/components/VotingRoom';
 export default function RoomPage() {
   const params = useParams();
   const router = useRouter();
-  const roomId = params.roomId as string;
+  const roomId = (params?.roomId as string) || '';
   
   const [userName, setUserName] = useState('');
   const [isJoining, setIsJoining] = useState(false);
