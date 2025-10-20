@@ -4,6 +4,15 @@ import { useState, useEffect } from 'react';
 import MoodCard from './MoodCard';
 import { Room, User, Vote } from '@/lib/types';
 
+// Copy to clipboard helper
+const copyToClipboard = (text: string) => {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text);
+    return true;
+  }
+  return false;
+};
+
 interface VotingRoomProps {
   room: Room;
   currentUser: User;
@@ -22,6 +31,7 @@ export default function VotingRoom({
   onVote 
 }: VotingRoomProps) {
   const [showResults, setShowResults] = useState(room.showResults);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   useEffect(() => {
     setShowResults(room.showResults);
@@ -50,21 +60,55 @@ export default function VotingRoom({
     ? room.users.reduce((sum, u) => sum + (u.vote?.scale || 0), 0) / room.users.filter(u => u.vote).length
     : 0;
 
+  // Get shareable link
+  const shareableLink = typeof window !== 'undefined' 
+    ? `${window.location.origin}/${room.id}` 
+    : '';
+
+  const handleCopyLink = () => {
+    if (copyToClipboard(shareableLink)) {
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
+    }
+  };
+
   return (
     <div className="min-h-screen apple-gradient-bg">
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
+            <div className="flex-1">
               <h1 className="apple-title mb-1">Mood Check</h1>
-              <div className="flex items-center space-x-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="apple-badge-gray">
                   Room: <span className="font-mono font-semibold">{room.id}</span>
                 </span>
                 {isAdmin && (
                   <span className="apple-badge-purple">Admin</span>
                 )}
+                <button
+                  onClick={handleCopyLink}
+                  className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-apple-gray-100 hover:bg-apple-gray-200 rounded-full text-xs font-medium text-apple-gray-700 transition-colors"
+                  title="Copy shareable link"
+                >
+                  {copiedLink ? (
+                    <>
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M2 7L5.5 10.5L12 3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      <span>Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 1H3C2.44772 1 2 1.44772 2 2V10C2 10.5523 2.44772 11 3 11H9C9.55228 11 10 10.5523 10 10V2C10 1.44772 9.55228 1 9 1Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M12 4H11C10.4477 4 10 4.44772 10 5V12C10 12.5523 9.55228 13 9 13H5C4.44772 13 4 12.4477 4 12V11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      <span>Share Link</span>
+                    </>
+                  )}
+                </button>
               </div>
             </div>
             

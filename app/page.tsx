@@ -146,6 +146,15 @@ export default function Home() {
       });
     });
 
+    // Handle session finished - redirect to home
+    socketInstance.on('session-finished', () => {
+      console.log('[session-finished] Room closed, redirecting to home');
+      // Clean up state
+      setRoom(null);
+      setCurrentUser(null);
+      setAppState('join');
+    });
+
     return () => {
       socketInstance.disconnect();
     };
