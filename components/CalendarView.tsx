@@ -81,6 +81,14 @@ export default function CalendarView({ currentUser, onSelectDate, onViewHistory,
     return checkDate > today;
   };
 
+  // Check if date is weekend (Saturday = 6, Sunday = 0)
+  const isWeekend = (dateString: string | null) => {
+    if (!dateString) return false;
+    const date = new Date(dateString);
+    const day = date.getDay();
+    return day === 0 || day === 6;
+  };
+
   return (
     <div className="min-h-screen p-4 sm:p-6 md:p-8">
       {/* Header */}
@@ -160,14 +168,16 @@ export default function CalendarView({ currentUser, onSelectDate, onViewHistory,
               const voted = hasVoted(item.date);
               const today = isToday(item.date);
               const future = isFuture(item.date);
+              const weekend = isWeekend(item.date);
+              const disabled = future || weekend;
 
               return (
                 <button
                   key={item.date}
-                  onClick={() => !future && item.date && onSelectDate(item.date)}
-                  disabled={future}
+                  onClick={() => !disabled && item.date && onSelectDate(item.date)}
+                  disabled={disabled}
                   className={`aspect-square rounded-2xl font-black text-base sm:text-lg transition-all duration-200 transform-gpu relative ${
-                    future
+                    disabled
                       ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
                       : today
                       ? 'kahoot-purple text-white ring-4 ring-purple-300 ring-offset-2 hover:scale-105 shadow-lg'
@@ -205,7 +215,7 @@ export default function CalendarView({ currentUser, onSelectDate, onViewHistory,
               </div>
               <div className="flex items-center space-x-2">
                 <div className="w-6 h-6 bg-gray-100 rounded-lg"></div>
-                <span className="text-gray-700">Future</span>
+                <span className="text-gray-700">Weekend/Future</span>
               </div>
             </div>
           </div>
@@ -219,7 +229,7 @@ export default function CalendarView({ currentUser, onSelectDate, onViewHistory,
                   📅 Pick any past or present date to vote or view results
                 </p>
                 <p className="text-xs text-gray-600 font-semibold">
-                  Green dates have your vote • Purple is today • Future dates are disabled
+                  Green dates have your vote • Purple is today • Weekends disabled (working days only)
                 </p>
               </div>
             </div>

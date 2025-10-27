@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ArrowLeft, TrendingUp, Calendar as CalendarIcon, User } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Calendar as CalendarIcon, Users } from 'lucide-react';
 import { TEAM_MEMBERS, TeamMemberId, MoodHistory } from '@/lib/types';
 
 interface HistoryViewProps {
@@ -11,78 +11,102 @@ interface HistoryViewProps {
 }
 
 export default function HistoryView({ currentUser, onBack, history }: HistoryViewProps) {
-  const [viewMode, setViewMode] = useState<'personal' | 'team'>('personal');
-  const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'all'>('week');
+  const [selectedWeekOffset, setSelectedWeekOffset] = useState(0); // 0 = this week, -1 = last week, etc.
 
-  // Filter history based on mode and period
-  const getFilteredHistory = () => {
-    let filtered = viewMode === 'personal' 
-      ? history.filter(h => h.teamMemberId === currentUser.id)
-      : history;
-
+  // Get start and end of a week (Monday to Friday)
+  const getWeekDates = (offset: number = 0) => {
     const now = new Date();
-    const cutoffDate = new Date();
+    const currentDay = now.getDay();
+    const diff = currentDay === 0 ? -6 : 1 - currentDay; // Monday as start
     
-    if (selectedPeriod === 'week') {
-      cutoffDate.setDate(now.getDate() - 7);
-    } else if (selectedPeriod === 'month') {
-      cutoffDate.setDate(now.getDate() - 30);
-    }
-
-    if (selectedPeriod !== 'all') {
-      filtered = filtered.filter(h => new Date(h.date) >= cutoffDate);
-    }
-
-    return filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + diff + (offset * 7));
+    monday.setHours(0, 0, 0, 0);
+    
+    const friday = new Date(monday);
+    friday.setDate(monday.getDate() + 4);
+    friday.setHours(23, 59, 59, 999);
+    
+    return { monday, friday };
   };
 
-  const filteredHistory = getFilteredHistory();
+  const { monday, friday } = getWeekDates(selectedWeekOffset);
 
-  // Calculate stats
-  const calculateStats = () => {
-    if (filteredHistory.length === 0) {
-      return { average: 0, highest: 0, lowest: 0, totalDays: 0 };
+  // Format date range
+  const formatWeekRange = () => {
+    const mondayStr = monday.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+    const fridayStr = friday.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+    return `${mondayStr} - ${fridayStr}`;
+  };
+
+  // Get weekday names (Mon-Fri)
+  const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+  
+  // Get dates for the week
+  const getWeekDaysArray = () => {
+    const days = [];
+    for (let i = 0; i < 5; i++) {
+      const date = new Date(monday);
+      date.setDate(monday.getDate() + i);
+      days.push(date.toISOString().split('T')[0]);
+    }
+    return days;
+  };
+
+  const weekDaysArray = getWeekDaysArray();
+
+  // Filter history for current week
+  const weekHistory = history.filter(h => {
+    const date = new Date(h.date);
+    return date >= monday && date <= friday;
+  });
+
+  // Organize data by team member and day
+  const getMemberWeekData = (memberId: TeamMemberId) => {
+    return weekDaysArray.map(dateStr => {
+      const entry = weekHistory.find(h => h.teamMemberId === memberId && h.date === dateStr);
+      return entry ? entry.vote : null;
+    });
+  };
+
+  // Calculate stats for the week
+  const calculateWeekStats = () => {
+    if (weekHistory.length === 0) {
+      return { average: 0, highest: 0, lowest: 0, totalVotes: 0 };
     }
 
-    const scores = filteredHistory.map(h => h.vote.scale);
+    const scores = weekHistory.map(h => h.vote.scale);
     const average = scores.reduce((a, b) => a + b, 0) / scores.length;
     const highest = Math.max(...scores);
     const lowest = Math.min(...scores);
 
-    // Count unique dates
-    const uniqueDates = new Set(filteredHistory.map(h => h.date));
-    const totalDays = uniqueDates.size;
-
-    return { average, highest, lowest, totalDays };
+    return { average, highest, lowest, totalVotes: weekHistory.length };
   };
 
-  const stats = calculateStats();
+  const stats = calculateWeekStats();
 
   // Get team member info
   const getTeamMember = (id: TeamMemberId) => {
     return TEAM_MEMBERS.find(m => m.id === id);
   };
 
-  // Format date
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  // Get color for member
+  const getMemberColor = (color: string) => {
+    const colors: { [key: string]: string } = {
+      red: '#E21B3C',
+      blue: '#1368CE',
+      yellow: '#FFA602',
+      green: '#26890C',
+      purple: '#7B3FF2',
+    };
+    return colors[color] || colors.purple;
   };
 
-  // Get mood label
-  const getMoodLabel = (scale: number) => {
-    if (scale <= 2) return 'Very Bad';
-    if (scale <= 4) return 'Bad';
-    if (scale === 5) return 'Neutral';
-    if (scale === 6) return 'Okay';
-    if (scale === 7) return 'Good';
-    if (scale === 8) return 'Great';
-    if (scale === 9) return 'Amazing';
-    return 'Excellent';
+  // Format date for display
+  const formatDayMonth = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
   };
-
-  // Simple bar chart data (last 7 or 30 entries)
-  const chartData = filteredHistory.slice(0, selectedPeriod === 'week' ? 7 : 30).reverse();
 
   return (
     <div className="min-h-screen p-4 sm:p-6 md:p-8">
@@ -93,10 +117,10 @@ export default function HistoryView({ currentUser, onBack, history }: HistoryVie
             <div>
               <h1 className="text-3xl sm:text-4xl font-black text-white mb-2 tracking-tight flex items-center space-x-3">
                 <TrendingUp className="w-8 h-8" />
-                <span>Mood History</span>
+                <span>Mood History Tim</span>
               </h1>
               <p className="text-white/90 text-base sm:text-lg font-semibold">
-                Track your team&apos;s mood over time
+                Perbandingan mood semua anggota tim
               </p>
             </div>
             <button
@@ -104,74 +128,36 @@ export default function HistoryView({ currentUser, onBack, history }: HistoryVie
               className="btn-kahoot kahoot-blue flex items-center space-x-2 text-sm sm:text-base px-4 py-3"
             >
               <ArrowLeft className="w-5 h-5" />
-              <span>Back to Calendar</span>
+              <span>Kembali</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Controls */}
+      {/* Week Navigation */}
       <div className="max-w-6xl mx-auto mb-6">
-        <div className="liquid-glass rounded-2xl p-4 border-2 border-white/50 flex flex-wrap gap-4 justify-between items-center">
-          {/* View Mode */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => setViewMode('personal')}
-              className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${
-                viewMode === 'personal'
-                  ? 'kahoot-purple text-white shadow-lg'
-                  : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-purple-400'
-              }`}
-            >
-              <User className="w-4 h-4 inline mr-2" />
-              My Moods
-            </button>
-            <button
-              onClick={() => setViewMode('team')}
-              className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${
-                viewMode === 'team'
-                  ? 'kahoot-purple text-white shadow-lg'
-                  : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-purple-400'
-              }`}
-            >
-              <CalendarIcon className="w-4 h-4 inline mr-2" />
-              Team Moods
-            </button>
+        <div className="liquid-glass rounded-2xl p-4 border-2 border-white/50 flex items-center justify-between">
+          <button
+            onClick={() => setSelectedWeekOffset(selectedWeekOffset - 1)}
+            className="px-4 py-2 rounded-xl bg-white hover:bg-gray-50 border-2 border-gray-200 font-bold text-gray-700 transition-all"
+          >
+            ← Minggu Lalu
+          </button>
+          
+          <div className="text-center">
+            <div className="font-black text-xl text-gray-800">{formatWeekRange()}</div>
+            <div className="text-sm text-gray-600 font-semibold">
+              {selectedWeekOffset === 0 ? 'Minggu Ini' : selectedWeekOffset === -1 ? 'Minggu Lalu' : `${Math.abs(selectedWeekOffset)} Minggu Lalu`}
+            </div>
           </div>
-
-          {/* Period Filter */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => setSelectedPeriod('week')}
-              className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${
-                selectedPeriod === 'week'
-                  ? 'kahoot-green text-white shadow-lg'
-                  : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-green-400'
-              }`}
-            >
-              7 Days
-            </button>
-            <button
-              onClick={() => setSelectedPeriod('month')}
-              className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${
-                selectedPeriod === 'month'
-                  ? 'kahoot-green text-white shadow-lg'
-                  : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-green-400'
-              }`}
-            >
-              30 Days
-            </button>
-            <button
-              onClick={() => setSelectedPeriod('all')}
-              className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${
-                selectedPeriod === 'all'
-                  ? 'kahoot-green text-white shadow-lg'
-                  : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-green-400'
-              }`}
-            >
-              All Time
-            </button>
-          </div>
+          
+          <button
+            onClick={() => setSelectedWeekOffset(selectedWeekOffset + 1)}
+            disabled={selectedWeekOffset >= 0}
+            className="px-4 py-2 rounded-xl bg-white hover:bg-gray-50 border-2 border-gray-200 font-bold text-gray-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Minggu Depan →
+          </button>
         </div>
       </div>
 
@@ -182,7 +168,7 @@ export default function HistoryView({ currentUser, onBack, history }: HistoryVie
             <div className="text-center">
               <div className="text-4xl mb-2">📊</div>
               <div className="text-3xl font-black text-blue-900">{stats.average.toFixed(1)}</div>
-              <div className="text-sm font-bold text-blue-700 uppercase">Avg Mood</div>
+              <div className="text-sm font-bold text-blue-700 uppercase">Rata-rata</div>
             </div>
           </div>
 
@@ -190,124 +176,235 @@ export default function HistoryView({ currentUser, onBack, history }: HistoryVie
             <div className="text-center">
               <div className="text-4xl mb-2">🔝</div>
               <div className="text-3xl font-black text-green-900">{stats.highest}/10</div>
-              <div className="text-sm font-bold text-green-700 uppercase">Highest</div>
+              <div className="text-sm font-bold text-green-700 uppercase">Tertinggi</div>
             </div>
           </div>
 
           <div className="liquid-glass rounded-2xl p-5 border-2 border-red-200">
             <div className="text-center">
               <div className="text-4xl mb-2">📉</div>
-              <div className="text-3xl font-black text-red-900">{stats.lowest}/10</div>
-              <div className="text-sm font-bold text-red-700 uppercase">Lowest</div>
+              <div className="text-3xl font-black text-red-900">{stats.lowest || 0}/10</div>
+              <div className="text-sm font-bold text-red-700 uppercase">Terendah</div>
             </div>
           </div>
 
           <div className="liquid-glass rounded-2xl p-5 border-2 border-purple-200">
             <div className="text-center">
-              <div className="text-4xl mb-2">📅</div>
-              <div className="text-3xl font-black text-purple-900">{stats.totalDays}</div>
-              <div className="text-sm font-bold text-purple-700 uppercase">Days Tracked</div>
+              <div className="text-4xl mb-2">✓</div>
+              <div className="text-3xl font-black text-purple-900">{stats.totalVotes}</div>
+              <div className="text-sm font-bold text-purple-700 uppercase">Total Vote</div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Simple Bar Chart */}
-      {chartData.length > 0 && (
-        <div className="max-w-6xl mx-auto mb-6">
-          <div className="liquid-glass rounded-3xl p-6 sm:p-8 border-2 border-white/50">
-            <h2 className="text-2xl font-black gradient-text-kahoot mb-6">Mood Trend</h2>
-            <div className="flex items-end justify-between space-x-2 h-64">
-              {chartData.map((entry, index) => {
-                const heightPercent = (entry.vote.scale / 10) * 100;
-                const member = getTeamMember(entry.teamMemberId);
-                
-                return (
-                  <div key={index} className="flex-1 flex flex-col items-center space-y-2">
-                    <div className="relative w-full flex-1 flex items-end">
-                      <div
-                        className={`w-full rounded-t-xl transition-all hover:opacity-80 cursor-pointer ${
-                          member?.color === 'red' ? 'kahoot-red' :
-                          member?.color === 'blue' ? 'kahoot-blue' :
-                          member?.color === 'yellow' ? 'kahoot-yellow' :
-                          member?.color === 'green' ? 'kahoot-green' :
-                          'kahoot-purple'
-                        }`}
-                        style={{ height: `${heightPercent}%` }}
-                        title={`${formatDate(entry.date)}: ${entry.vote.emoji} ${entry.vote.scale}/10`}
-                      >
-                        <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 text-2xl">
-                          {entry.vote.emoji}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-xs font-bold text-gray-600 text-center">
-                      {new Date(entry.date).getDate()}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="mt-4 flex justify-between text-xs font-bold text-gray-500">
-              <span>0</span>
-              <span>Mood Scale</span>
-              <span>10</span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* History List */}
-      <div className="max-w-6xl mx-auto">
+      {/* Multi-Line Chart */}
+      <div className="max-w-6xl mx-auto mb-6">
         <div className="liquid-glass rounded-3xl p-6 sm:p-8 border-2 border-white/50">
-          <h2 className="text-2xl font-black gradient-text-kahoot mb-6">Recent Entries</h2>
+          <h2 className="text-2xl font-black gradient-text-kahoot mb-6">Perbandingan Mood Mingguan</h2>
           
-          {filteredHistory.length === 0 ? (
+          {weekHistory.length === 0 ? (
             <div className="text-center py-12">
               <div className="text-6xl mb-4">📊</div>
-              <p className="text-gray-600 font-semibold">No mood data yet</p>
-              <p className="text-sm text-gray-500 mt-2">Start voting to see your history!</p>
+              <p className="text-gray-600 font-semibold">Belum ada data untuk minggu ini</p>
             </div>
           ) : (
-            <div className="space-y-3 max-h-96 overflow-y-auto">
-              {filteredHistory.map((entry, index) => {
-                const member = getTeamMember(entry.teamMemberId);
-                
-                return (
-                  <div
-                    key={`${entry.date}-${entry.teamMemberId}-${index}`}
-                    className="bg-gradient-to-r from-white to-gray-50 rounded-xl p-4 border-2 border-gray-200 hover:border-purple-300 transition-all flex items-center justify-between fade-in"
-                  >
-                    <div className="flex items-center space-x-4">
-                      <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-black shadow-md ${
-                        member?.color === 'red' ? 'kahoot-red' :
-                        member?.color === 'blue' ? 'kahoot-blue' :
-                        member?.color === 'yellow' ? 'kahoot-yellow' :
-                        member?.color === 'green' ? 'kahoot-green' :
-                        'kahoot-purple'
-                      }`}>
-                        {member?.avatar}
+            <div>
+              {/* Chart */}
+              <div className="relative h-80 mb-8">
+                {/* Y-axis labels */}
+                <div className="absolute left-0 top-0 bottom-0 flex flex-col justify-between text-xs font-bold text-gray-500 pr-2">
+                  <span>10</span>
+                  <span>8</span>
+                  <span>6</span>
+                  <span>4</span>
+                  <span>2</span>
+                  <span>0</span>
+                </div>
+
+                {/* Chart area */}
+                <div className="ml-8 h-full relative border-l-2 border-b-2 border-gray-300">
+                  {/* Horizontal grid lines */}
+                  {[0, 2, 4, 6, 8, 10].map((value) => (
+                    <div
+                      key={value}
+                      className="absolute w-full border-t border-gray-200"
+                      style={{ bottom: `${(value / 10) * 100}%` }}
+                    ></div>
+                  ))}
+
+                  {/* Lines for each team member */}
+                  {TEAM_MEMBERS.map((member) => {
+                    const weekData = getMemberWeekData(member.id);
+                    const color = getMemberColor(member.color);
+                    
+                    // Create SVG path
+                    const points = weekData.map((vote, index) => {
+                      if (!vote) return null;
+                      const x = ((index + 0.5) / 5) * 100;
+                      const y = 100 - (vote.scale / 10) * 100;
+                      return { x, y, vote };
+                    }).filter(p => p !== null);
+
+                    if (points.length === 0) return null;
+
+                    return (
+                      <svg key={member.id} className="absolute inset-0 w-full h-full pointer-events-none">
+                        {/* Line */}
+                        {points.length > 1 && (
+                          <polyline
+                            points={points.map(p => `${p!.x}%,${p!.y}%`).join(' ')}
+                            fill="none"
+                            stroke={color}
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        )}
+                        
+                        {/* Points with emojis */}
+                        {points.map((point, idx) => (
+                          <g key={idx}>
+                            <circle
+                              cx={`${point!.x}%`}
+                              cy={`${point!.y}%`}
+                              r="6"
+                              fill={color}
+                              stroke="white"
+                              strokeWidth="2"
+                            />
+                          </g>
+                        ))}
+                      </svg>
+                    );
+                  })}
+
+                  {/* Emoji labels at each point */}
+                  {weekDaysArray.map((dateStr, dayIndex) => {
+                    const dayVotes = weekHistory.filter(h => h.date === dateStr);
+                    return (
+                      <div
+                        key={dateStr}
+                        className="absolute"
+                        style={{ left: `${((dayIndex + 0.5) / 5) * 100}%`, transform: 'translateX(-50%)' }}
+                      >
+                        {dayVotes.map((entry, idx) => {
+                          const yPosition = 100 - (entry.vote.scale / 10) * 100;
+                          return (
+                            <div
+                              key={`${entry.teamMemberId}-${idx}`}
+                              className="absolute text-2xl"
+                              style={{
+                                bottom: `${yPosition}%`,
+                                transform: 'translate(-50%, 50%)',
+                                left: '50%'
+                              }}
+                              title={`${getTeamMember(entry.teamMemberId)?.name}: ${entry.vote.scale}/10`}
+                            >
+                              {entry.vote.emoji}
+                            </div>
+                          );
+                        })}
                       </div>
-                      <div>
-                        <div className="font-black text-gray-800 text-lg">{member?.name}</div>
-                        <div className="text-sm text-gray-600 font-semibold">{formatDate(entry.date)}</div>
-                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* X-axis labels */}
+                <div className="ml-8 mt-2 flex justify-between text-xs font-bold text-gray-600">
+                  {weekdays.map((day, index) => (
+                    <div key={day} className="flex-1 text-center">
+                      <div>{day}</div>
+                      <div className="text-xs text-gray-400">{formatDayMonth(weekDaysArray[index])}</div>
                     </div>
-                    <div className="flex items-center space-x-3">
-                      <div className="text-4xl">{entry.vote.emoji}</div>
-                      <div className="bg-white px-4 py-2 rounded-xl border-2 border-purple-200 shadow-sm text-center">
-                        <div className="text-2xl font-black text-purple-600">{entry.vote.scale}</div>
-                        <div className="text-xs text-gray-600 font-bold">{getMoodLabel(entry.vote.scale)}</div>
-                      </div>
-                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Legend */}
+              <div className="flex flex-wrap justify-center gap-4 mt-6 pt-6 border-t-2 border-gray-200">
+                {TEAM_MEMBERS.map((member) => (
+                  <div key={member.id} className="flex items-center space-x-2">
+                    <div
+                      className="w-4 h-4 rounded-full border-2 border-white shadow"
+                      style={{ backgroundColor: getMemberColor(member.color) }}
+                    ></div>
+                    <span className="text-sm font-bold text-gray-700">
+                      {member.avatar} {member.name}
+                    </span>
                   </div>
-                );
-              })}
+                ))}
+              </div>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Daily Breakdown Table */}
+      <div className="max-w-6xl mx-auto">
+        <div className="liquid-glass rounded-3xl p-6 sm:p-8 border-2 border-white/50">
+          <h2 className="text-2xl font-black gradient-text-kahoot mb-6">Detail Harian</h2>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b-2 border-gray-300">
+                  <th className="text-left py-3 px-4 font-black text-gray-700 uppercase text-sm">Tim</th>
+                  {weekdays.map((day, index) => (
+                    <th key={day} className="text-center py-3 px-2 font-black text-gray-700 uppercase text-xs">
+                      <div>{day}</div>
+                      <div className="text-xs text-gray-400 font-normal">{formatDayMonth(weekDaysArray[index]).split(' ')[0]}</div>
+                    </th>
+                  ))}
+                  <th className="text-center py-3 px-4 font-black text-gray-700 uppercase text-sm">Rata²</th>
+                </tr>
+              </thead>
+              <tbody>
+                {TEAM_MEMBERS.map((member) => {
+                  const weekData = getMemberWeekData(member.id);
+                  const validScores = weekData.filter(v => v !== null).map(v => v!.scale);
+                  const memberAvg = validScores.length > 0
+                    ? validScores.reduce((a, b) => a + b, 0) / validScores.length
+                    : 0;
+
+                  return (
+                    <tr key={member.id} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                      <td className="py-3 px-4">
+                        <div className="flex items-center space-x-2">
+                          <div
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm shadow"
+                            style={{ backgroundColor: getMemberColor(member.color) }}
+                          >
+                            {member.avatar}
+                          </div>
+                          <span className="font-bold text-gray-800">{member.name}</span>
+                        </div>
+                      </td>
+                      {weekData.map((vote, index) => (
+                        <td key={index} className="text-center py-3 px-2">
+                          {vote ? (
+                            <div className="flex flex-col items-center">
+                              <div className="text-2xl mb-1">{vote.emoji}</div>
+                              <div className="text-sm font-bold text-gray-700">{vote.scale}</div>
+                            </div>
+                          ) : (
+                            <div className="text-gray-400 text-sm">-</div>
+                          )}
+                        </td>
+                      ))}
+                      <td className="text-center py-3 px-4">
+                        <div className="inline-block bg-purple-100 px-3 py-1 rounded-lg">
+                          <span className="font-black text-purple-700">{memberAvg > 0 ? memberAvg.toFixed(1) : '-'}</span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
   );
 }
-

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getSocket } from '@/lib/socket';
-import { Vote, TeamMemberId, MoodHistory } from '@/lib/types';
+import { Vote, TeamMemberId, MoodHistory, TEAM_MEMBERS } from '@/lib/types';
 import PersonSelector from '@/components/PersonSelector';
 import CalendarView from '@/components/CalendarView';
 import VotingRoom from '@/components/VotingRoom';
@@ -132,34 +132,46 @@ export default function Home() {
 
     setSelectedDate(date);
     
-    // Try to join existing session for this date or create new one
-    const roomId = date; // Use date as room ID
+    // Use date as room ID
+    const roomId = date;
     
     // Check if user already voted for this date
     const userKey = `${currentUser.id}-${date}`;
     const hasVoted = votedDates.includes(userKey);
 
-    // Create or join room for this date
-    const socketId = socket.id;
-    socket.emit('room:join', { 
-      roomId, 
-      user: currentUser.name, 
-      userId: currentUser.id,
-      date,
-      hasVoted 
-    });
+    // Create a room with all team members
+    const newRoom = {
+      id: roomId,
+      name: `Session ${date}`,
+      adminId: socket.id || 'unknown',
+      users: TEAM_MEMBERS.map(member => {
+        const memberKey = `${member.id}-${date}`;
+        const memberHasVoted = votedDates.includes(memberKey);
+        const memberVote = moodHistory.find(h => h.teamMemberId === member.id && h.date === date);
+        
+        return {
+          id: member.id,
+          userId: member.id,
+          name: member.name,
+          isAdmin: member.id === currentUser.id,
+          hasVoted: memberHasVoted,
+          vote: memberVote?.vote,
+          teamMemberId: member.id,
+        };
+      }),
+      isVotingOpen: true,
+      showResults: false,
+      createdAt: new Date(),
+      date: date,
+    };
+    
+    setRoom(newRoom);
+    setAppState('voting');
   };
 
   const handleVote = (vote: Vote) => {
     if (socket && currentUser && selectedDate) {
       console.log('[vote] submit', { vote, currentUser, selectedDate });
-      socket.emit('vote', { 
-        roomId: selectedDate, 
-        user: currentUser.name, 
-        userId: currentUser.id,
-        emoji: vote.emoji,
-        score: vote.scale
-      });
 
       // Save to voted dates
       const userKey = `${currentUser.id}-${selectedDate}`;
@@ -176,6 +188,26 @@ export default function Home() {
       const newHistory = [...moodHistory, newEntry];
       setMoodHistory(newHistory);
       localStorage.setItem('moodHistory', JSON.stringify(newHistory));
+
+      // Update room users to show vote
+      setRoom(prevRoom => {
+        if (!prevRoom) return prevRoom;
+        const updatedUsers = prevRoom.users.map(u => 
+          u.id === currentUser.id 
+            ? { ...u, hasVoted: true, vote: { emoji: vote.emoji, scale: vote.scale } }
+            : u
+        );
+        
+        // Check if all users have voted
+        const allVoted = updatedUsers.every(u => u.hasVoted);
+        
+        return {
+          ...prevRoom,
+          users: updatedUsers,
+          showResults: allVoted,
+          isVotingOpen: !allVoted
+        };
+      });
     }
   };
 
