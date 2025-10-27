@@ -2,134 +2,88 @@
 
 import { useState, useEffect } from 'react';
 import { getSocket } from '@/lib/socket';
-import { Room, User, Vote } from '@/lib/types';
-import JoinRoom from '@/components/JoinRoom';
+import { Vote, TeamMemberId, MoodHistory } from '@/lib/types';
+import PersonSelector from '@/components/PersonSelector';
+import CalendarView from '@/components/CalendarView';
 import VotingRoom from '@/components/VotingRoom';
+import HistoryView from '@/components/HistoryView';
 
-type AppState = 'join' | 'voting';
+type AppState = 'person-select' | 'calendar' | 'voting' | 'history';
 
 export default function Home() {
-  const [appState, setAppState] = useState<AppState>('join');
-  const [room, setRoom] = useState<Room | null>(null);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [appState, setAppState] = useState<AppState>('person-select');
+  const [currentUser, setCurrentUser] = useState<{ id: TeamMemberId; name: string } | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [socket, setSocket] = useState<any>(null);
+  const [room, setRoom] = useState<any>(null);
+  const [votedDates, setVotedDates] = useState<string[]>([]);
+  const [moodHistory, setMoodHistory] = useState<MoodHistory[]>([]);
 
   useEffect(() => {
     const socketInstance = getSocket();
     setSocket(socketInstance);
 
     // Socket event listeners
-    socketInstance.on('room:created', (data: { roomId: string }) => {
-      console.log('Room created:', data);
-      // Create a basic room object for the UI
-      const newRoom: Room = {
+    socketInstance.on('room:created', (data: { roomId: string; date: string }) => {
+      console.log('Date session created:', data);
+      const newRoom = {
         id: data.roomId,
-        name: `Room ${data.roomId}`,
+        name: `Session ${data.date}`,
         adminId: socketInstance.id || 'unknown',
         users: [],
-        isVotingOpen: true, // Start voting immediately
+        isVotingOpen: true,
         showResults: false,
         createdAt: new Date(),
+        date: data.date,
       };
       setRoom(newRoom);
-      setAppState('voting'); // Go directly to voting, no lobby
+      setAppState('voting');
     });
 
-    // Handle presence updates (member list changes)
-    socketInstance.on('presence', (data: { users: User[] }) => {
+    socketInstance.on('presence', (data: { users: any[] }) => {
       console.log('[presence] update', {
         count: data.users.length,
         names: data.users.map(u => u.name),
-        userIds: data.users.map(u => u.id),
-        timestamp: new Date().toISOString()
       });
       
-      // Update currentUser if they're in the presence list
-      setCurrentUser(prevUser => {
-        if (prevUser) {
-          const updatedUser = data.users.find(u => u.id === socketInstance.id || u.name === prevUser.name);
-          if (updatedUser) {
-            console.log('[presence] Found currentUser in presence, updating', {
-              oldId: prevUser.id,
-              newId: updatedUser.id,
-              name: updatedUser.name,
-              socketId: socketInstance.id
-            });
-            return {
-              ...updatedUser,
-              isAdmin: prevUser.isAdmin // Preserve admin status
-            };
-          } else {
-            console.log('[presence] WARNING: currentUser NOT found in presence list!', {
-              currentUserId: prevUser.id,
-              currentUserName: prevUser.name,
-              socketId: socketInstance.id,
-              presenceUserIds: data.users.map(u => u.id)
-            });
-          }
-        }
-        return prevUser;
-      });
-      
-      setRoom(prevRoom => {
+      setRoom((prevRoom: any) => {
         if (prevRoom) {
-          console.log('[presence] Updating room users', {
-            oldCount: prevRoom.users.length,
-            newCount: data.users.length
-          });
           return {
             ...prevRoom,
             users: data.users
           };
-        } else {
-          console.log('[presence] No previous room, ignoring');
         }
         return prevRoom;
       });
     });
 
-    socketInstance.on('room:joined', (data: { roomId: string }) => {
-      console.log('Room joined:', data);
-      // Create a basic room object for the UI - don't set users yet, wait for presence
-      const joinedRoom: Room = {
+    socketInstance.on('room:joined', (data: { roomId: string; date: string }) => {
+      console.log('Joined date session:', data);
+      const joinedRoom = {
         id: data.roomId,
-        name: `Room ${data.roomId}`,
+        name: `Session ${data.date}`,
         adminId: '',
         users: [],
-        isVotingOpen: true, // Assume voting is open when joining
+        isVotingOpen: true,
         showResults: false,
         createdAt: new Date(),
+        date: data.date,
       };
       setRoom(joinedRoom);
-      setAppState('voting'); // Go directly to voting, no lobby
-    });
-
-    socketInstance.on('room-updated', (updatedRoom: Room) => {
-      setRoom(updatedRoom);
-      // Already in voting, no need to change state
+      setAppState('voting');
     });
 
     socketInstance.on('voting-started', () => {
-      // Ensure voting is open
-      setRoom(prev => prev ? { ...prev, isVotingOpen: true, showResults: false } : prev);
-    });
-
-    socketInstance.on('closed', () => {
-      // Voting closed; keep in voting view, hide results until reveal
-      setRoom(prev => prev ? { ...prev, isVotingOpen: false } : prev);
+      setRoom((prev: any) => prev ? { ...prev, isVotingOpen: true, showResults: false } : prev);
     });
 
     socketInstance.on('reveal', (data: { results: { user: string; emoji: string; score: number }[] }) => {
-      // Merge revealed results into users by id and show results
-      console.log('[reveal] results', {
-        count: data.results.length,
-        sample: data.results.slice(0, 3)
-      });
-      setRoom(prev => {
+      console.log('[reveal] results', data);
+      setRoom((prev: any) => {
         if (!prev) return prev;
         const idToVote = new Map<string, { emoji: string; score: number }>();
         for (const r of data.results) idToVote.set(r.user, { emoji: r.emoji, score: r.score });
-        const users = prev.users.map(u => {
+        const users = prev.users.map((u: any) => {
           const v = idToVote.get(u.id);
           return v ? { ...u, vote: { emoji: v.emoji, scale: v.score }, hasVoted: true } : u;
         });
@@ -138,110 +92,171 @@ export default function Home() {
     });
 
     socketInstance.on('reset', () => {
-      // New round; clear votes and reopen lobby/voting state as closed
-      setRoom(prev => {
+      setRoom((prev: any) => {
         if (!prev) return prev;
-        const users = prev.users.map(u => ({ ...u, hasVoted: false, vote: undefined }));
+        const users = prev.users.map((u: any) => ({ ...u, hasVoted: false, vote: undefined }));
         return { ...prev, users, isVotingOpen: false, showResults: false };
       });
     });
 
-    // Handle session finished - redirect to home
-    socketInstance.on('session-finished', () => {
-      console.log('[session-finished] Room closed, redirecting to home');
-      // Clean up state
-      setRoom(null);
-      setCurrentUser(null);
-      setAppState('join');
-    });
+    // Load user's voted dates from localStorage
+    const storedVotedDates = localStorage.getItem('votedDates');
+    if (storedVotedDates) {
+      setVotedDates(JSON.parse(storedVotedDates));
+    }
+
+    // Load mood history from localStorage
+    const storedHistory = localStorage.getItem('moodHistory');
+    if (storedHistory) {
+      setMoodHistory(JSON.parse(storedHistory));
+    }
 
     return () => {
       socketInstance.disconnect();
     };
   }, []);
 
-  const handleJoinRoom = (roomId: string, userName: string) => {
-    if (socket) {
-      console.log('[DEBUG] handleJoinRoom START', {
-        socketId: socket.id,
-        socketConnected: socket.connected,
-        userName
-      });
-      // Store the user name for later use
-      const newUser = {
-        id: socket.id || 'unknown',
-        name: userName,
-        isAdmin: false,
-        hasVoted: false,
-      };
-      console.log('[DEBUG] Setting currentUser', newUser);
-      setCurrentUser(newUser);
-      socket.emit('room:join', { roomId, user: userName, userId: socket.id });
-    }
+  const handleSelectPerson = (memberId: TeamMemberId, memberName: string) => {
+    console.log('[DEBUG] handleSelectPerson', { memberId, memberName });
+    const user = {
+      id: memberId,
+      name: memberName,
+    };
+    setCurrentUser(user);
+    setAppState('calendar');
   };
 
-  const handleCreateRoom = (userName: string) => {
-    if (socket) {
-      console.log('[DEBUG] handleCreateRoom START', {
-        socketId: socket.id,
-        socketConnected: socket.connected,
-        userName
-      });
-      // Store the admin name for later use
-      const newUser = {
-        id: socket.id || 'unknown',
-        name: userName,
-        isAdmin: true,
-        hasVoted: false,
-      };
-      console.log('[DEBUG] Setting currentUser (admin)', newUser);
-      setCurrentUser(newUser);
-      socket.emit('room:create', { admin: userName, userId: socket.id });
-    }
-  };
+  const handleSelectDate = (date: string) => {
+    console.log('[DEBUG] handleSelectDate', { date, currentUser });
+    if (!socket || !currentUser) return;
 
-  const handleFinishSession = () => {
-    if (socket && room) {
-      socket.emit('finish-session', { roomId: room.id });
-    }
-  };
+    setSelectedDate(date);
+    
+    // Try to join existing session for this date or create new one
+    const roomId = date; // Use date as room ID
+    
+    // Check if user already voted for this date
+    const userKey = `${currentUser.id}-${date}`;
+    const hasVoted = votedDates.includes(userKey);
 
-  const handleRevealResults = () => {
-    if (socket && room) {
-      socket.emit('reveal', { roomId: room.id });
-    }
-  };
-
-  const handleResetVoting = () => {
-    if (socket && room) {
-      socket.emit('reset', { roomId: room.id });
-    }
+    // Create or join room for this date
+    const socketId = socket.id;
+    socket.emit('room:join', { 
+      roomId, 
+      user: currentUser.name, 
+      userId: currentUser.id,
+      date,
+      hasVoted 
+    });
   };
 
   const handleVote = (vote: Vote) => {
-    if (socket && currentUser) {
+    if (socket && currentUser && selectedDate) {
+      console.log('[vote] submit', { vote, currentUser, selectedDate });
       socket.emit('vote', { 
-        roomId: room?.id, 
+        roomId: selectedDate, 
         user: currentUser.name, 
+        userId: currentUser.id,
         emoji: vote.emoji,
         score: vote.scale
       });
+
+      // Save to voted dates
+      const userKey = `${currentUser.id}-${selectedDate}`;
+      const newVotedDates = [...votedDates, userKey];
+      setVotedDates(newVotedDates);
+      localStorage.setItem('votedDates', JSON.stringify(newVotedDates));
+
+      // Save to mood history
+      const newEntry: MoodHistory = {
+        teamMemberId: currentUser.id,
+        date: selectedDate,
+        vote: { ...vote, timestamp: new Date() }
+      };
+      const newHistory = [...moodHistory, newEntry];
+      setMoodHistory(newHistory);
+      localStorage.setItem('moodHistory', JSON.stringify(newHistory));
     }
   };
 
-  if (!room || !currentUser) {
-    return <JoinRoom onJoinRoom={handleJoinRoom} onCreateRoom={handleCreateRoom} />;
+  const handleBackToCalendar = () => {
+    setAppState('calendar');
+    setRoom(null);
+    setSelectedDate(null);
+  };
+
+  const handleViewHistory = () => {
+    setAppState('history');
+  };
+
+  const handleBackFromHistory = () => {
+    setAppState('calendar');
+  };
+
+  // Person Selection Screen
+  if (appState === 'person-select' || !currentUser) {
+    return <PersonSelector onSelectPerson={handleSelectPerson} />;
   }
 
-  // Always show voting room - no lobby
-  return (
-    <VotingRoom
-      room={room}
-      currentUser={currentUser}
-      onFinishSession={handleFinishSession}
-      onRevealResults={handleRevealResults}
-      onResetVoting={handleResetVoting}
-      onVote={handleVote}
-    />
-  );
+  // History View
+  if (appState === 'history') {
+    return (
+      <HistoryView
+        currentUser={currentUser}
+        onBack={handleBackFromHistory}
+        history={moodHistory}
+      />
+    );
+  }
+
+  // Calendar View
+  if (appState === 'calendar') {
+    // Filter voted dates for current user
+    const userVotedDates = votedDates
+      .filter(key => key.startsWith(`${currentUser.id}-`))
+      .map(key => key.split('-').slice(1).join('-'));
+
+    return (
+      <CalendarView
+        currentUser={currentUser}
+        onSelectDate={handleSelectDate}
+        onViewHistory={handleViewHistory}
+        votedDates={userVotedDates}
+      />
+    );
+  }
+
+  // Voting Room
+  if (appState === 'voting' && room) {
+    const roomUser = {
+      id: socket?.id || currentUser.id,
+      userId: currentUser.id,
+      name: currentUser.name,
+      isAdmin: false,
+      hasVoted: false,
+      teamMemberId: currentUser.id,
+    };
+
+    return (
+      <VotingRoom
+        room={room}
+        currentUser={roomUser}
+        onFinishSession={handleBackToCalendar}
+        onRevealResults={() => {
+          if (socket && room) {
+            socket.emit('reveal', { roomId: room.id });
+          }
+        }}
+        onResetVoting={() => {
+          if (socket && room) {
+            socket.emit('reset', { roomId: room.id });
+          }
+        }}
+        onVote={handleVote}
+        onBack={handleBackToCalendar}
+      />
+    );
+  }
+
+  return <PersonSelector onSelectPerson={handleSelectPerson} />;
 }

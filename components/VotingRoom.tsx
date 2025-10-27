@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { Users, Eye, RotateCcw, TrendingUp, Award, Zap, ArrowLeft, Calendar } from 'lucide-react';
 import MoodCard from './MoodCard';
 import { Room, User, Vote } from '@/lib/types';
 
@@ -20,6 +21,7 @@ interface VotingRoomProps {
   onRevealResults: () => void;
   onResetVoting: () => void;
   onVote: (vote: Vote) => void;
+  onBack?: () => void;
 }
 
 export default function VotingRoom({ 
@@ -28,7 +30,8 @@ export default function VotingRoom({
   onFinishSession, 
   onRevealResults, 
   onResetVoting, 
-  onVote 
+  onVote,
+  onBack
 }: VotingRoomProps) {
   const [showResults, setShowResults] = useState(room.showResults);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -81,39 +84,36 @@ export default function VotingRoom({
             <div className="flex-1">
               <h1 className="apple-title mb-1">Mood Check</h1>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="apple-badge-gray">
-                  Room: <span className="font-mono font-semibold">{room.id}</span>
+                <span className="apple-badge-gray flex items-center space-x-2">
+                  <Calendar className="w-4 h-4" />
+                  <span>
+                    {room.date ? new Date(room.date).toLocaleDateString('en-US', { 
+                      month: 'long', 
+                      day: 'numeric', 
+                      year: 'numeric' 
+                    }) : `Room: ${room.id}`}
+                  </span>
                 </span>
                 {isAdmin && (
                   <span className="apple-badge-purple">Admin</span>
                 )}
-                <button
-                  onClick={handleCopyLink}
-                  className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-apple-gray-100 hover:bg-apple-gray-200 rounded-full text-xs font-medium text-apple-gray-700 transition-colors"
-                  title="Copy shareable link"
-                >
-                  {copiedLink ? (
-                    <>
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M2 7L5.5 10.5L12 3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                      <span>Copied!</span>
-                    </>
-                  ) : (
-                    <>
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M9 1H3C2.44772 1 2 1.44772 2 2V10C2 10.5523 2.44772 11 3 11H9C9.55228 11 10 10.5523 10 10V2C10 1.44772 9.55228 1 9 1Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M12 4H11C10.4477 4 10 4.44772 10 5V12C10 12.5523 9.55228 13 9 13H5C4.44772 13 4 12.4477 4 12V11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                      <span>Share Link</span>
-                    </>
-                  )}
-                </button>
               </div>
             </div>
             
-            {/* Admin Controls */}
-            {isAdmin && (
+            {/* Navigation & Controls */}
+            <div className="flex flex-wrap gap-2">
+              {onBack && (
+                <button
+                  onClick={onBack}
+                  className="apple-button-secondary text-sm"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-1.5" />
+                  Back to Calendar
+                </button>
+              )}
+              
+              {/* Admin Controls */}
+              {isAdmin && (
               <div className="flex flex-wrap gap-2">
                 {!room.isVotingOpen && !showResults && (
                   <button
@@ -147,8 +147,8 @@ export default function VotingRoom({
                 >
                   End Session
                 </button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div>
