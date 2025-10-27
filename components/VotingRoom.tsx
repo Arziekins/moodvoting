@@ -114,39 +114,40 @@ export default function VotingRoom({
               
               {/* Admin Controls */}
               {isAdmin && (
-              <div className="flex flex-wrap gap-2">
-                {!room.isVotingOpen && !showResults && (
+                <>
+                  {!room.isVotingOpen && !showResults && (
+                    <button
+                      onClick={onRevealResults}
+                      className="apple-button-primary text-sm"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" className="mr-1.5">
+                        <path d="M1 8C1 8 3.5 3 8 3C12.5 3 15 8 15 8C15 8 12.5 13 8 13C3.5 13 1 8 1 8Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <circle cx="8" cy="8" r="2" stroke="currentColor" strokeWidth="1.5"/>
+                      </svg>
+                      Reveal Results
+                    </button>
+                  )}
+                  
+                  {showResults && (
+                    <button
+                      onClick={onResetVoting}
+                      className="apple-button-secondary text-sm"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" className="mr-1.5">
+                        <path d="M1 8C1 4.13401 4.13401 1 8 1C11.866 1 15 4.13401 15 8C15 11.866 11.866 15 8 15C5.5 15 3.5 13.5 2.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                        <path d="M1 11V8H4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      New Round
+                    </button>
+                  )}
+                  
                   <button
-                    onClick={onRevealResults}
-                    className="apple-button-primary text-sm"
+                    onClick={onFinishSession}
+                    className="apple-button-secondary text-sm text-red-600"
                   >
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" className="mr-1.5">
-                      <path d="M1 8C1 8 3.5 3 8 3C12.5 3 15 8 15 8C15 8 12.5 13 8 13C3.5 13 1 8 1 8Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      <circle cx="8" cy="8" r="2" stroke="currentColor" strokeWidth="1.5"/>
-                    </svg>
-                    Reveal Results
+                    End Session
                   </button>
-                )}
-                
-                {showResults && (
-                  <button
-                    onClick={onResetVoting}
-                    className="apple-button-secondary text-sm"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" className="mr-1.5">
-                      <path d="M1 8C1 4.13401 4.13401 1 8 1C11.866 1 15 4.13401 15 8C15 11.866 11.866 15 8 15C5.5 15 3.5 13.5 2.5 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                      <path d="M1 11V8H4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    New Round
-                  </button>
-                )}
-                
-                <button
-                  onClick={onFinishSession}
-                  className="apple-button-secondary text-sm text-red-600"
-                >
-                  End Session
-                </button>
+                </>
               )}
             </div>
           </div>
