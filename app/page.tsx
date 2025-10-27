@@ -190,7 +190,7 @@ export default function Home() {
       localStorage.setItem('moodHistory', JSON.stringify(newHistory));
 
       // Update room users to show vote
-      setRoom(prevRoom => {
+      setRoom((prevRoom: Room | null) => {
         if (!prevRoom) return prevRoom;
         const updatedUsers = prevRoom.users.map(u => 
           u.id === currentUser.id 
